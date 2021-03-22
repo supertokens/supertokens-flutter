@@ -1,0 +1,25 @@
+name: supertokens
+description: SuperTokens session management implementation for Flutter apps
+version: 0.0.1
+author: supertokens
+homepage: https://supertokens.io/
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  http: 0.13.1
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter.
+flutter:
+
