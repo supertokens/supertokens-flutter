@@ -2,12 +2,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class IdRefreshToken {
   static String? idRefreshInMemory;
-  static String sharedPreferencesKey = "supertokens-flutter-id-refresh-token";
+  static String _sharedPreferencesKey = "supertokens-flutter-id-refresh-token";
 
   static Future<String?> getToken() async {
     if (IdRefreshToken.idRefreshInMemory == null) {
       IdRefreshToken.idRefreshInMemory = (await SharedPreferences.getInstance())
-          .getString(IdRefreshToken.sharedPreferencesKey);
+          .getString(IdRefreshToken._sharedPreferencesKey);
     }
 
     if (IdRefreshToken.idRefreshInMemory != null) {
@@ -36,16 +36,17 @@ class IdRefreshToken {
       await IdRefreshToken.removeToken();
     } else {
       SharedPreferences preferences = await SharedPreferences.getInstance();
-      preferences.setString(sharedPreferencesKey, newIdRefreshToken);
-      preferences.reload();
+      await preferences.setString(
+          IdRefreshToken._sharedPreferencesKey, newIdRefreshToken);
+      await preferences.reload();
       IdRefreshToken.idRefreshInMemory = newIdRefreshToken;
     }
   }
 
   static Future<void> removeToken() async {
-    await (await SharedPreferences.getInstance()).remove(sharedPreferencesKey);
-    (await SharedPreferences.getInstance())
-        .reload(); // To ensure that the removal is synchronised
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    await preferences.remove(IdRefreshToken._sharedPreferencesKey);
+    await preferences.reload(); // To ensure that the removal is synchronised
     IdRefreshToken.idRefreshInMemory = null;
   }
 }
