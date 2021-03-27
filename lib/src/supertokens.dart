@@ -1,3 +1,5 @@
+import 'package:supertokens/src/id-refresh-token.dart';
+
 /// Primary class for the supertokens package
 /// Use [SuperTokens.initialise] to initialise the package, do this before making any network calls
 class SuperTokens {
@@ -57,8 +59,9 @@ class SuperTokens {
     }
   }
 
-  // TODO: Implement and add code docs
-  static bool doesSessionExist() {
-    return true;
+  /// Use this function to verify if a users session is valid
+  static Future<bool> doesSessionExist() async {
+    String? idRefreshToken = await IdRefreshToken.getToken();
+    return idRefreshToken != null;
   }
 }
