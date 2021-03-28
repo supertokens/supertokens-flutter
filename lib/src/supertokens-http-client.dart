@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:http/http.dart' as http;
+import 'package:mutex/mutex.dart';
 import 'package:supertokens/src/anti-csrf.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/src/utilities.dart';
@@ -13,6 +14,7 @@ import 'constants.dart';
 /// If you use a custom client for your network calls pass an instance of it as a paramtere when initialising [SuperTokensHttpClient], pass [http.Client()] to use the default.
 class SuperTokensHttpClient extends http.BaseClient {
   final http.Client _innerClient;
+  final ReadWriteMutex refreshAPILock = ReadWriteMutex();
 
   SuperTokensHttpClient(this._innerClient);
 
@@ -35,7 +37,7 @@ class SuperTokensHttpClient extends http.BaseClient {
 
     try {
       while (true) {
-        // TODO: Aquire read lock, from read write lock
+        refreshAPILock.acquireRead();
         String? preRequestIdRefreshToken;
         http.StreamedResponse response;
         try {
@@ -62,7 +64,7 @@ class SuperTokensHttpClient extends http.BaseClient {
             await IdRefreshToken.setToken(idRefreshTokenFromResponse);
           }
         } finally {
-          // TODO: unlock read lock
+          refreshAPILock.release();
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
@@ -119,7 +121,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     // this is intentionally not put in a loop because the loop in other projects is because locking has a timeout
     http.Response refreshResponse;
     try {
-      // TODO: Aquire write lock
+      refreshAPILock.acquireWrite();
       String? postLockIdRefresh = await IdRefreshToken.getToken();
 
       if (postLockIdRefresh == null) {
@@ -189,7 +191,7 @@ class SuperTokensHttpClient extends http.BaseClient {
       return _UnauthorisedResponse(
           status: _UnauthorisedStatus.API_ERROR, exception: exception);
     } finally {
-      // TODO: release write lock
+      refreshAPILock.release();
     }
   }
 }
