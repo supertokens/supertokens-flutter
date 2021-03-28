@@ -28,22 +28,38 @@ void main() {
   test(
       "Test that the refresh endpoint gets set correctly when using a URL with no path",
       () {
-    // TODO: Add test case
-    expect(true, false);
+    try {
+      SuperTokens.initialise(refreshTokenEndpoint: "https://api.example.com");
+    } catch (e) {
+      fail("SuperTokens.initialise threw an error");
+    }
+    expect(SuperTokens.refreshTokenEndpoint,
+        "https://api.example.com/session/refresh");
   });
 
   test(
       "Test that the refresh endpoint gets set correctly when using a URL with empty path",
       () {
-    // TODO: Add test case
-    expect(true, false);
+    try {
+      SuperTokens.initialise(refreshTokenEndpoint: "https://api.example.com/");
+    } catch (e) {
+      fail("SuperTokens.initialise threw an error");
+    }
+    expect(SuperTokens.refreshTokenEndpoint,
+        "https://api.example.com/session/refresh");
   });
 
   test(
       "Test that the refresh endpoint gets set correctly when using a URL with a valid path",
       () {
-    // TODO: Add test case
-    expect(true, false);
+    try {
+      SuperTokens.initialise(
+          refreshTokenEndpoint: "https://api.example.com/other/url");
+    } catch (e) {
+      fail("SuperTokens.initialise threw an error");
+    }
+    expect(
+        SuperTokens.refreshTokenEndpoint, "https://api.example.com/other/url");
   });
 
   test(
