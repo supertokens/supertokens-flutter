@@ -1,12 +1,14 @@
 import 'package:supertokens/src/id-refresh-token.dart';
+import 'package:supertokens/src/utilities.dart';
 
 /// Primary class for the supertokens package
 /// Use [SuperTokens.initialise] to initialise the package, do this before making any network calls
 class SuperTokens {
   static int sessionExpiryStatusCode = 401;
   static bool isInitCalled = false;
-  static String? refreshTokenEndpoint;
-  static Map<String, dynamic>? refreshAPICustomHeaders;
+  static String refreshTokenEndpoint = "";
+  static String? apiDomain;
+  static Map<String, String>? refreshAPICustomHeaders;
 
   /// Initialises the SuperTokens SDK
   /// Uses the [refreshTokenEndpoint] to make a call to refresh the session when needed,
@@ -16,7 +18,7 @@ class SuperTokens {
   static void initialise({
     required String refreshTokenEndpoint,
     int sessionExpiryStatusCode = 401,
-    Map<String, dynamic> refreshAPICustomHeaders = const {},
+    Map<String, String> refreshAPICustomHeaders = const {},
   }) {
     if (SuperTokens.isInitCalled) {
       return;
@@ -26,6 +28,7 @@ class SuperTokens {
     SuperTokens.sessionExpiryStatusCode = sessionExpiryStatusCode;
     SuperTokens.refreshTokenEndpoint =
         _transformRefreshTokenEndpoint(refreshTokenEndpoint);
+    SuperTokens.apiDomain = SuperTokensUtils.getApiDomain(refreshTokenEndpoint);
     SuperTokens.isInitCalled = true;
   }
 

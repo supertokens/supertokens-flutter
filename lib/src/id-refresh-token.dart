@@ -24,7 +24,7 @@ class IdRefreshToken {
     return IdRefreshToken.idRefreshInMemory;
   }
 
-  static void setToken(String newIdRefreshToken) async {
+  static Future<void> setToken(String newIdRefreshToken) async {
     if (newIdRefreshToken == "remove") {
       await IdRefreshToken.removeToken();
       return;
