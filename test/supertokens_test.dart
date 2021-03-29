@@ -151,4 +151,11 @@ void main() {
     // TODO: Add test case
     expect(true, false);
   });
+
+  test(
+      "Test that passing an instance of a custom client works as expected when using SuperTokensHttpClient",
+      () {
+    // TODO: Add test case
+    expect(true, false);
+  });
 }

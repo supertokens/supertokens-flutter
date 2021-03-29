@@ -1,5 +1,7 @@
 import 'dart:collection';
+import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:mutex/mutex.dart';
 import 'package:supertokens/src/anti-csrf.dart';
@@ -38,11 +40,11 @@ class SuperTokensHttpClient extends http.BaseClient {
     try {
       while (true) {
         refreshAPILock.acquireRead();
-        String? preRequestIdRefreshToken;
+        String preRequestIdRefreshToken;
         http.StreamedResponse response;
         try {
           preRequestIdRefreshToken = await IdRefreshToken.getToken();
-          String? antiCSRFToken =
+          String antiCSRFToken =
               await AntiCSRF.getToken(preRequestIdRefreshToken);
 
           if (antiCSRFToken != null) {
@@ -58,7 +60,7 @@ class SuperTokensHttpClient extends http.BaseClient {
 
           response = await _innerClient.send(request);
 
-          String? idRefreshTokenFromResponse =
+          String idRefreshTokenFromResponse =
               response.headers[idRefreshHeaderKey];
           if (idRefreshTokenFromResponse != null) {
             await IdRefreshToken.setToken(idRefreshTokenFromResponse);
@@ -74,9 +76,9 @@ class SuperTokensHttpClient extends http.BaseClient {
             return response;
           }
         } else {
-          String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
+          String antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
           if (antiCSRFFromResponse != null) {
-            String? postRequestIdRefresh = await IdRefreshToken.getToken();
+            String postRequestIdRefresh = await IdRefreshToken.getToken();
             await AntiCSRF.setToken(
               antiCSRFFromResponse,
               postRequestIdRefresh,
@@ -86,7 +88,7 @@ class SuperTokensHttpClient extends http.BaseClient {
         }
       }
     } finally {
-      String? idRefreshToken = await IdRefreshToken.getToken();
+      String idRefreshToken = await IdRefreshToken.getToken();
       if (idRefreshToken == null) {
         await AntiCSRF.removeToken();
       }
@@ -94,9 +96,9 @@ class SuperTokensHttpClient extends http.BaseClient {
   }
 
   Future<bool> _handleUnauthorised(
-      String? preRequestIdRefreshToken, http.BaseRequest request) async {
+      String preRequestIdRefreshToken, http.BaseRequest request) async {
     if (preRequestIdRefreshToken == null) {
-      String? idRefresh = await IdRefreshToken.getToken();
+      String idRefresh = await IdRefreshToken.getToken();
       return idRefresh != null;
     }
 
@@ -122,7 +124,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     http.Response refreshResponse;
     try {
       refreshAPILock.acquireWrite();
-      String? postLockIdRefresh = await IdRefreshToken.getToken();
+      String postLockIdRefresh = await IdRefreshToken.getToken();
 
       if (postLockIdRefresh == null) {
         return _UnauthorisedResponse(
@@ -134,7 +136,7 @@ class SuperTokensHttpClient extends http.BaseClient {
       }
 
       Map<String, String> refreshHeaders = HashMap();
-      String? antiCSRF = await AntiCSRF.getToken(preRequestIdRefreshToken);
+      String antiCSRF = await AntiCSRF.getToken(preRequestIdRefreshToken);
 
       if (antiCSRF != null) {
         refreshHeaders[antiCSRFHeaderKey] = antiCSRF;
@@ -148,7 +150,7 @@ class SuperTokensHttpClient extends http.BaseClient {
           .post(Uri.parse(refreshEndpointURL), headers: refreshHeaders);
 
       bool removeIdRefreshToken = true;
-      String? idRefreshTokenFromResponse =
+      String idRefreshTokenFromResponse =
           refreshResponse.headers[idRefreshHeaderKey];
 
       if (idRefreshTokenFromResponse != null) {
@@ -166,15 +168,15 @@ class SuperTokensHttpClient extends http.BaseClient {
         throw http.ClientException(message);
       }
 
-      String? idRefreshAfterResponse = await IdRefreshToken.getToken();
+      String idRefreshAfterResponse = await IdRefreshToken.getToken();
       if (idRefreshAfterResponse == null) {
         return _UnauthorisedResponse(
             status: _UnauthorisedStatus.SESSION_EXPIRED);
       }
 
-      String? antiCSRFFromResponse = refreshResponse.headers[antiCSRFHeaderKey];
+      String antiCSRFFromResponse = refreshResponse.headers[antiCSRFHeaderKey];
       if (antiCSRFFromResponse != null) {
-        String? idRefreshToken = await IdRefreshToken.getToken();
+        String idRefreshToken = await IdRefreshToken.getToken();
         await AntiCSRF.setToken(antiCSRFFromResponse, idRefreshToken);
       }
 
@@ -182,7 +184,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     } catch (e) {
       http.ClientException exception = http.ClientException(
           "$e"); // Need to do it this way to capture the error message since catch returns a generic object not a class
-      String? idRefreshToken = await IdRefreshToken.getToken();
+      String idRefreshToken = await IdRefreshToken.getToken();
       if (idRefreshToken == null) {
         return _UnauthorisedResponse(
             status: _UnauthorisedStatus.SESSION_EXPIRED);
@@ -204,10 +206,10 @@ enum _UnauthorisedStatus {
 
 class _UnauthorisedResponse {
   final _UnauthorisedStatus status;
-  final http.ClientException? exception;
+  final http.ClientException exception;
 
   _UnauthorisedResponse({
-    required this.status,
+    @required this.status,
     this.exception,
   });
 }

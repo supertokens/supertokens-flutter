@@ -1,20 +1,22 @@
+import 'dart:async';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _AntiCSRFInfo {
-  String? antiCSRF;
-  String? idRefreshToken;
+  String antiCSRF;
+  String idRefreshToken;
 
-  _AntiCSRFInfo({String? antiCSRFToken, String? associatedIdRefreshToken}) {
+  _AntiCSRFInfo({String antiCSRFToken, String associatedIdRefreshToken}) {
     this.antiCSRF = antiCSRFToken;
     this.idRefreshToken = associatedIdRefreshToken;
   }
 }
 
 class AntiCSRF {
-  static _AntiCSRFInfo? _antiCSRFInfo;
+  static _AntiCSRFInfo _antiCSRFInfo;
   static String _sharedPreferencesKey = "supertokens-flutter-anti-csrf";
 
-  static Future<String?> getToken(String? associatedIdRefreshToken) async {
+  static Future<String> getToken(String associatedIdRefreshToken) async {
     if (associatedIdRefreshToken == null) {
       AntiCSRF._antiCSRFInfo = null;
       return null;
@@ -22,7 +24,7 @@ class AntiCSRF {
 
     if (AntiCSRF._antiCSRFInfo == null) {
       SharedPreferences preferences = await SharedPreferences.getInstance();
-      String? antiCSRFToken =
+      String antiCSRFToken =
           preferences.getString(AntiCSRF._sharedPreferencesKey);
       if (antiCSRFToken == null) {
         return null;
@@ -37,11 +39,11 @@ class AntiCSRF {
       return AntiCSRF.getToken(associatedIdRefreshToken);
     }
 
-    return AntiCSRF._antiCSRFInfo!.antiCSRF;
+    return AntiCSRF._antiCSRFInfo.antiCSRF;
   }
 
   static Future<void> setToken(
-      String antiCSRFToken, String? associatedIdRefreshToken) async {
+      String antiCSRFToken, String associatedIdRefreshToken) async {
     if (associatedIdRefreshToken == null) {
       AntiCSRF._antiCSRFInfo = null;
       return;
