@@ -38,7 +38,7 @@ class SuperTokens {
   /// Verifies the validity of the URL and appends the refresh path if needed.
   /// Returns `String` URL to be used as a the refresh endpoint URL.
   static String _transformRefreshTokenEndpoint(String refreshTokenEndpoint) {
-    if (!refreshTokenEndpoint.startsWith("http") ||
+    if (!refreshTokenEndpoint.startsWith("http") &&
         !refreshTokenEndpoint.startsWith("https")) {
       throw FormatException("URL must start with either http or https");
     }
