@@ -15,10 +15,10 @@ import 'constants.dart';
 
 /// An [http.BaseClient] implementation for using SuperTokens for your network requests.
 /// To make use of supertokens, use this as the client for making network calls instead of [http.Client] or your own custom clients.
-/// If you use a custom client for your network calls pass an instance of it as a paramtere when initialising [SuperTokensHttpClient], pass [http.Client()] to use the default.
+/// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [SuperTokensHttpClient], pass [http.Client()] to use the default.
 class SuperTokensHttpClient extends http.BaseClient {
   final http.Client _innerClient;
-  final ReadWriteMutex refreshAPILock = ReadWriteMutex();
+  final ReadWriteMutex _refreshAPILock = ReadWriteMutex();
   SuperTokensCookieStore _cookieStore;
 
   SuperTokensHttpClient(this._innerClient);
@@ -46,7 +46,7 @@ class SuperTokensHttpClient extends http.BaseClient {
 
     try {
       while (true) {
-        refreshAPILock.acquireRead();
+        _refreshAPILock.acquireRead();
         String preRequestIdRefreshToken;
         http.StreamedResponse response;
         try {
@@ -65,41 +65,29 @@ class SuperTokensHttpClient extends http.BaseClient {
                 superTokensPluginVersion;
           }
 
-          List<Cookie> cookies;
+          // Add cookies to request headers
+          String newCookiesToAdd =
+              await _cookieStore.getCookieHeaderStringForRequest(request.url);
+          String existingCookieHeader =
+              request.headers[HttpHeaders.cookieHeader];
 
-          try {
-            cookies = await _cookieStore.getForRequest(request.url);
-          } catch (e) {
-            // Do nothing
+          // If the request already has a "cookie" header, combine it with persistent cookies
+          if (existingCookieHeader != null) {
+            request.headers[HttpHeaders.cookieHeader] =
+                "$existingCookieHeader;$newCookiesToAdd";
+          } else {
+            request.headers[HttpHeaders.cookieHeader] = newCookiesToAdd;
           }
 
-          if (cookies != null && cookies.isNotEmpty) {
-            List<String> cookiesStringList =
-                cookies.map((e) => e.toString()).toList();
-            String existingCookieHeader =
-                request.headers[HttpHeaders.cookieHeader];
-            String newCookiesToAdd = cookiesStringList.join(";");
+          // http package does not allow retries with the same request object, so we clone the request when making the network call
+          response =
+              await _innerClient.send(SuperTokensUtils.copyRequest(request));
 
-            if (existingCookieHeader != null) {
-              request.headers[HttpHeaders.cookieHeader] =
-                  "$existingCookieHeader;$newCookiesToAdd";
-            } else {
-              request.headers[HttpHeaders.cookieHeader] = newCookiesToAdd;
-            }
-          }
-
-          response = await _innerClient.send(request);
+          // Save cookies from the response
           String setCookieFromResponse =
               response.headers[HttpHeaders.setCookieHeader];
-
-          if (setCookieFromResponse != null) {
-            List<String> setCookiesStringList =
-                setCookieFromResponse.split(RegExp(r',(?=[^ ])'));
-            List<Cookie> setCookiesList = setCookiesStringList
-                .map((e) => Cookie.fromSetCookieValue(e))
-                .toList();
-            _cookieStore.saveFromResponse(request.url, setCookiesList);
-          }
+          await _cookieStore.saveFromSetCookieHeader(
+              request.url, setCookieFromResponse);
 
           String idRefreshTokenFromResponse =
               response.headers[idRefreshHeaderKey];
@@ -107,7 +95,7 @@ class SuperTokensHttpClient extends http.BaseClient {
             await IdRefreshToken.setToken(idRefreshTokenFromResponse);
           }
         } finally {
-          refreshAPILock.release();
+          _refreshAPILock.release();
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
@@ -164,7 +152,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     // this is intentionally not put in a loop because the loop in other projects is because locking has a timeout
     http.Response refreshResponse;
     try {
-      refreshAPILock.acquireWrite();
+      _refreshAPILock.acquireWrite();
       String postLockIdRefresh = await IdRefreshToken.getToken();
 
       if (postLockIdRefresh == null) {
@@ -187,8 +175,20 @@ class SuperTokensHttpClient extends http.BaseClient {
       refreshHeaders[superTokensSDKVersionHeaderKey] = superTokensPluginVersion;
       refreshHeaders.addAll(SuperTokens.refreshAPICustomHeaders ?? HashMap());
 
-      refreshResponse = await this
-          .post(Uri.parse(refreshEndpointURL), headers: refreshHeaders);
+      // Add cookies
+      Uri refreshUri = Uri.parse(refreshEndpointURL);
+      String cookieHeader =
+          await _cookieStore.getCookieHeaderStringForRequest(refreshUri);
+      refreshHeaders[HttpHeaders.cookieHeader] = cookieHeader;
+
+      refreshResponse =
+          await _innerClient.post(refreshUri, headers: refreshHeaders);
+
+      // Save cookies from response
+      String setCookieFromResponse =
+          refreshResponse.headers[HttpHeaders.setCookieHeader];
+      await _cookieStore.saveFromSetCookieHeader(
+          refreshUri, setCookieFromResponse);
 
       bool removeIdRefreshToken = true;
       String idRefreshTokenFromResponse =
@@ -234,7 +234,7 @@ class SuperTokensHttpClient extends http.BaseClient {
       return _UnauthorisedResponse(
           status: _UnauthorisedStatus.API_ERROR, exception: exception);
     } finally {
-      refreshAPILock.release();
+      _refreshAPILock.release();
     }
   }
 }

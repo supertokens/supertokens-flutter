@@ -31,7 +31,6 @@ class NetworkManager {
 
   Future<String> getUserInfo() async {
     try {
-      print("Calling user info");
       http.Response response =
           await superTokensHttpClient.get(Uri.parse("$baseURL/userInfo"));
       Map<String, dynamic> json = jsonDecode(response.body);
