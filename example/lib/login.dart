@@ -81,7 +81,11 @@ class LoginScreen extends StatelessWidget {
       Navigator.of(context).pushNamed("/home");
       return;
     } catch (e) {
-      // TODO: show toast
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Something went wrong"),
+        ),
+      );
     } finally {
       isLoggingIn = false;
     }

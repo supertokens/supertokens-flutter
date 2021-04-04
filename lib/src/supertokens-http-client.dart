@@ -1,10 +1,12 @@
 import 'dart:collection';
-import 'dart:async';
+import 'dart:io';
+import 'dart:async' as dartAsync;
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:mutex/mutex.dart';
 import 'package:supertokens/src/anti-csrf.dart';
+import 'package:supertokens/src/cookie-store.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/src/utilities.dart';
 import 'package:supertokens/supertokens.dart';
@@ -17,11 +19,16 @@ import 'constants.dart';
 class SuperTokensHttpClient extends http.BaseClient {
   final http.Client _innerClient;
   final ReadWriteMutex refreshAPILock = ReadWriteMutex();
+  SuperTokensCookieStore _cookieStore;
 
   SuperTokensHttpClient(this._innerClient);
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+  dartAsync.Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (_cookieStore == null) {
+      _cookieStore = SuperTokensCookieStore();
+    }
+
     if (!SuperTokens.isInitCalled) {
       throw http.ClientException(
           "SuperTokens.initialise must be called before using SuperTokensHttpClient");
@@ -58,7 +65,41 @@ class SuperTokensHttpClient extends http.BaseClient {
                 superTokensPluginVersion;
           }
 
+          List<Cookie> cookies;
+
+          try {
+            cookies = await _cookieStore.getForRequest(request.url);
+          } catch (e) {
+            // Do nothing
+          }
+
+          if (cookies != null && cookies.isNotEmpty) {
+            List<String> cookiesStringList =
+                cookies.map((e) => e.toString()).toList();
+            String existingCookieHeader =
+                request.headers[HttpHeaders.cookieHeader];
+            String newCookiesToAdd = cookiesStringList.join(";");
+
+            if (existingCookieHeader != null) {
+              request.headers[HttpHeaders.cookieHeader] =
+                  "$existingCookieHeader;$newCookiesToAdd";
+            } else {
+              request.headers[HttpHeaders.cookieHeader] = newCookiesToAdd;
+            }
+          }
+
           response = await _innerClient.send(request);
+          String setCookieFromResponse =
+              response.headers[HttpHeaders.setCookieHeader];
+
+          if (setCookieFromResponse != null) {
+            List<String> setCookiesStringList =
+                setCookieFromResponse.split(RegExp(r',(?=[^ ])'));
+            List<Cookie> setCookiesList = setCookiesStringList
+                .map((e) => Cookie.fromSetCookieValue(e))
+                .toList();
+            _cookieStore.saveFromResponse(request.url, setCookiesList);
+          }
 
           String idRefreshTokenFromResponse =
               response.headers[idRefreshHeaderKey];
@@ -95,7 +136,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     }
   }
 
-  Future<bool> _handleUnauthorised(
+  dartAsync.Future<bool> _handleUnauthorised(
       String preRequestIdRefreshToken, http.BaseRequest request) async {
     if (preRequestIdRefreshToken == null) {
       String idRefresh = await IdRefreshToken.getToken();
@@ -116,7 +157,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     return true;
   }
 
-  Future<_UnauthorisedResponse> onUnauthorisedResponseRecieved(
+  dartAsync.Future<_UnauthorisedResponse> onUnauthorisedResponseRecieved(
       String refreshEndpointURL,
       String preRequestIdRefreshToken,
       http.BaseRequest request) async {

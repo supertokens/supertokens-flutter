@@ -1,0 +1,17 @@
+{
+    "name": "android-backend",
+    "version": "0.0.1",
+    "description": "Backend for ios",
+    "dependencies": {
+        "cookie-parser": "1.4.4",
+        "express": "4.16.4",
+        "moment": "2.24.0",
+        "supertokens-node": "git+https://github.com/supertokens/supertokens-node.git#2.4"
+    },
+    "devDependencies": {
+        "@types/cookie-parser": "1.4.1",
+        "@types/express": "4.16.1",
+        "@types/moment": "2.13.0",
+        "typescript": "3.5.2"
+    }
+}

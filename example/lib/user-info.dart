@@ -18,6 +18,7 @@ class UserInfoSection extends StatefulWidget {
 
 class _UserInfoSectionState extends State<UserInfoSection> {
   int numberOfAPICallsMade;
+  bool shouldFetch = true;
 
   @override
   void initState() {
@@ -26,12 +27,27 @@ class _UserInfoSectionState extends State<UserInfoSection> {
     startFetch();
   }
 
+  @override
+  void dispose() {
+    shouldFetch = false;
+    super.dispose();
+  }
+
   Future<void> startFetch() async {
-    String name = await NetworkManager.shared.getUserInfo();
-    setState(() {
-      numberOfAPICallsMade++;
-    });
-    widget.communicator.updateUserName(name);
+    if (!shouldFetch) {
+      return;
+    }
+
+    try {
+      String name = await NetworkManager.shared.getUserInfo();
+      setState(() {
+        numberOfAPICallsMade++;
+      });
+      widget.communicator.updateUserName(name);
+    } catch (e) {
+      // Do nothing
+    }
+
     Future.delayed(Duration(seconds: 1), () {
       startFetch();
     });

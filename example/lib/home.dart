@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     implements UserInfoCommunicator {
-  final List<int> list = List<int>.generate(10, (index) => index + 1);
+  final List<int> list = List<int>.generate(5, (index) => index + 1);
   bool isLoggingOut = false;
   String userName = "";
 
@@ -107,13 +107,17 @@ class _HomeScreenState extends State<HomeScreen>
       isLoggingOut = false;
     }
 
-    Navigator.of(context).pushNamed("/");
+    Navigator.of(context).pop();
   }
 
   @override
   void updateUserName(String name) {
     if (userName != "" && name != userName) {
-      // TODO: show toast for user name changed
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("User name changed"),
+        ),
+      );
     }
 
     setState(() {
