@@ -6,7 +6,7 @@ import 'package:supertokens/supertokens.dart';
 
 class NetworkManager {
   static NetworkManager shared = NetworkManager._init();
-  static final String baseURL = "http://${"192.168.1.102"}:8080";
+  static final String baseURL = "http://${"192.168.1.100"}:8080";
 
   http.Client client;
   SuperTokensHttpClient superTokensHttpClient;

@@ -5,8 +5,8 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SuperTokensCookieStore {
-  Map<Uri, List<Cookie>> _allCookies;
-  SharedPreferences _sharedPreferences;
+  Map<Uri, List<Cookie>>? _allCookies;
+  SharedPreferences? _sharedPreferences;
   final _cookieSharedPrefsKey = "supertokens-persistent-cookies";
 
   SuperTokensCookieStore() {
@@ -20,14 +20,14 @@ class SuperTokensCookieStore {
   Future<void> _loadFromPersistence() async {
     _allCookies = {};
     String cookiesStringInStorage =
-        _sharedPreferences.getString(_cookieSharedPrefsKey) ?? "{}";
+        _sharedPreferences?.getString(_cookieSharedPrefsKey) ?? "{}";
     Map<String, dynamic> cookiesInStorage = jsonDecode(cookiesStringInStorage);
     cookiesInStorage.forEach((key, value) {
       Uri uri = Uri.parse(key);
       List<String> cookieStrings = List.from(value);
       List<Cookie> cookies =
           cookieStrings.map((e) => Cookie.fromSetCookieValue(e)).toList();
-      _allCookies[uri] = cookies;
+      _allCookies?[uri] = cookies;
     });
   }
 
@@ -43,24 +43,25 @@ class SuperTokensCookieStore {
   ///
   /// If you are trying to store cookies from a "set-cookie" header response, consider using the [saveFromSetCookieHeader] utility method which parses the header string.
   Future<void> saveFromResponse(Uri uri, List<Cookie> cookies) async {
-    await Future.forEach(cookies, (element) async {
+    await Future.forEach<Cookie>(cookies, (element) async {
       Uri uriToStore = await _getCookieUri(uri, element);
-      List<Cookie> currentCookies = _allCookies[uriToStore] ?? List.from([]);
+      List<Cookie> currentCookies = _allCookies?[uriToStore] ?? List.from([]);
       currentCookies = currentCookies
           .where((e) => e != null && e.name != element.name)
           .toList();
 
       DateTime current = DateTime.now();
-      if (element.expires != current &&
-          element.expires.millisecondsSinceEpoch >
+      if (element.expires != null &&
+          element.expires != current &&
+          element.expires!.millisecondsSinceEpoch >
               current.millisecondsSinceEpoch) {
         currentCookies.add(element);
       }
 
-      _allCookies[uriToStore] = currentCookies;
+      _allCookies?[uriToStore] = currentCookies;
     });
 
-    _allCookies.removeWhere((key, value) => value.isEmpty);
+    _allCookies?.removeWhere((key, value) => value.isEmpty);
 
     await _updatePersistentStorage();
   }
@@ -71,7 +72,7 @@ class SuperTokensCookieStore {
         "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "/" : cookie.path}");
 
     if (cookie.domain != null) {
-      String domain = cookie.domain;
+      String domain = cookie.domain ?? "";
       if (domain[0] == ".") {
         domain = domain.substring(1);
       }
@@ -95,7 +96,7 @@ class SuperTokensCookieStore {
   /// Strips expired cookies before storing in shared preferences
   Future<void> _updatePersistentStorage() async {
     Map<String, List<String>> mapToStore = {};
-    _allCookies.forEach((key, value) {
+    _allCookies?.forEach((key, value) {
       String uriString = key.toString();
       List<String> cookieStrings =
           List.from(value.map((e) => e.toString()).toList());
@@ -103,7 +104,7 @@ class SuperTokensCookieStore {
     });
 
     String stringToStore = jsonEncode(mapToStore);
-    await _sharedPreferences.setString(_cookieSharedPrefsKey, stringToStore);
+    await _sharedPreferences?.setString(_cookieSharedPrefsKey, stringToStore);
   }
 
   /// Returns a list of [Cookie]s to be sent when making requests to the provided Uri
@@ -115,10 +116,14 @@ class SuperTokensCookieStore {
     List<Cookie> cookiesToReturn = [];
     List<Cookie> allValidCookies = [];
 
-    for (Uri storedUri in _allCookies.keys) {
+    if (_allCookies == null) {
+      return cookiesToReturn;
+    }
+
+    for (Uri storedUri in _allCookies!.keys) {
       if (_doesDomainMatch(storedUri.host, uri.host) &&
           _doesPathMatch(storedUri.path, uri.path)) {
-        List<Cookie> storedCookies = _allCookies[storedUri] ?? List.from([]);
+        List<Cookie> storedCookies = _allCookies?[storedUri] ?? List.from([]);
         allValidCookies.addAll(storedCookies);
       }
     }
@@ -127,7 +132,8 @@ class SuperTokensCookieStore {
       List<Cookie> cookiesToRemoveFromStorage = [];
       allValidCookies.forEach((element) {
         DateTime current = DateTime.now();
-        if (element.expires == current || element.expires.isBefore(current)) {
+        if (element.expires == current ||
+            (element.expires != null && element.expires!.isBefore(current))) {
           cookiesToRemoveFromStorage.add(element);
         } else {
           cookiesToReturn.add(element);
@@ -160,13 +166,13 @@ class SuperTokensCookieStore {
   Future<void> _removeFromPersistence(
       Uri uri, List<Cookie> cookiesToRemove) async {
     List<Cookie> _cookiesToRemove = List.from(cookiesToRemove);
-    List<Cookie> currentCookies = _allCookies[uri] ?? List.from([]);
+    List<Cookie> currentCookies = _allCookies?[uri] ?? List.from([]);
 
     _cookiesToRemove.forEach((element) {
       currentCookies.remove(element);
     });
 
-    _allCookies[uri] = currentCookies;
+    _allCookies?[uri] = currentCookies;
     await _updatePersistentStorage();
     return;
   }
@@ -195,7 +201,7 @@ class SuperTokensCookieStore {
   /// If the provided Uri does not have a scheme, it defaults to http when saving cookies.
   ///
   /// Expired cookies are not saved.
-  Future<void> saveFromSetCookieHeader(Uri uri, String setCookieHeader) async {
+  Future<void> saveFromSetCookieHeader(Uri uri, String? setCookieHeader) async {
     if (setCookieHeader != null) {
       List<String> setCookiesStringList =
           setCookieHeader.split(RegExp(r',(?=[^ ])'));

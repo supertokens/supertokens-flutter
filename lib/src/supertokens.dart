@@ -10,8 +10,8 @@ class SuperTokens {
   static int sessionExpiryStatusCode = 401;
   static bool isInitCalled = false;
   static String refreshTokenEndpoint = "";
-  static String apiDomain;
-  static Map<String, String> refreshAPICustomHeaders;
+  static String? apiDomain;
+  static Map<String, String>? refreshAPICustomHeaders;
 
   /// Initialises the SuperTokens SDK
   /// Uses the [refreshTokenEndpoint] to make a call to refresh the session when needed,
@@ -19,7 +19,7 @@ class SuperTokens {
   /// [refreshAPICustomHeaders] are always sent when calling the refresh endpoint.
   /// Throws a [FormatException] if an invalid URL is provided for [refreshTokenEndpoint].
   static void initialise({
-    @required String refreshTokenEndpoint,
+    required String refreshTokenEndpoint,
     int sessionExpiryStatusCode = 401,
     Map<String, String> refreshAPICustomHeaders = const {},
   }) {
@@ -67,7 +67,7 @@ class SuperTokens {
 
   /// Use this function to verify if a users session is valid
   static Future<bool> doesSessionExist() async {
-    String idRefreshToken = await IdRefreshToken.getToken();
+    String? idRefreshToken = await IdRefreshToken.getToken();
     return idRefreshToken != null;
   }
 }

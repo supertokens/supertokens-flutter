@@ -1,12 +1,10 @@
-import 'dart:async';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class IdRefreshToken {
-  static String idRefreshInMemory;
+  static String? idRefreshInMemory;
   static String _sharedPreferencesKey = "supertokens-flutter-id-refresh-token";
 
-  static Future<String> getToken() async {
+  static Future<String?> getToken() async {
     if (IdRefreshToken.idRefreshInMemory == null) {
       IdRefreshToken.idRefreshInMemory = (await SharedPreferences.getInstance())
           .getString(IdRefreshToken._sharedPreferencesKey);
