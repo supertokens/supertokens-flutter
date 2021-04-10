@@ -12,7 +12,7 @@ class NetworkManager {
   SuperTokensHttpClient superTokensHttpClient;
   NetworkManager._init() {
     client = http.Client();
-    superTokensHttpClient = SuperTokensHttpClient(client);
+    superTokensHttpClient = SuperTokensHttpClient.getInstance(client);
   }
 
   Future<void> login() async {

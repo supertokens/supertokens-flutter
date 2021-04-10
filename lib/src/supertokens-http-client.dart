@@ -14,11 +14,20 @@ import 'constants.dart';
 /// To make use of supertokens, use this as the client for making network calls instead of [http.Client] or your own custom clients.
 /// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [SuperTokensHttpClient], pass [http.Client()] to use the default.
 class SuperTokensHttpClient extends http.BaseClient {
+  static SuperTokensHttpClient? _instance;
+  static SuperTokensHttpClient getInstance(http.Client innerClient) {
+    if (_instance == null) {
+      _instance = SuperTokensHttpClient._init(innerClient);
+    }
+
+    return _instance!;
+  }
+
   final http.Client _innerClient;
   final ReadWriteMutex _refreshAPILock = ReadWriteMutex();
   SuperTokensCookieStore? _cookieStore;
 
-  SuperTokensHttpClient(this._innerClient);
+  SuperTokensHttpClient._init(this._innerClient);
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
@@ -43,7 +52,7 @@ class SuperTokensHttpClient extends http.BaseClient {
 
     try {
       while (true) {
-        _refreshAPILock.acquireRead();
+        await _refreshAPILock.acquireRead();
         String? preRequestIdRefreshToken;
         http.StreamedResponse response;
         try {
@@ -149,7 +158,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     // this is intentionally not put in a loop because the loop in other projects is because locking has a timeout
     http.Response refreshResponse;
     try {
-      _refreshAPILock.acquireWrite();
+      await _refreshAPILock.acquireWrite();
       String? postLockIdRefresh = await IdRefreshToken.getToken();
 
       if (postLockIdRefresh == null) {
