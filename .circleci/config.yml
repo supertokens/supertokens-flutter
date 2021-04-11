@@ -25,7 +25,7 @@ jobs:
       - slack/status
 
 workflows:
-  version: 2
+  version: 2.1
   tagged-build:
     jobs:
       - publish:
