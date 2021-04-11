@@ -152,3 +152,5 @@ then
     echo "Done!"
   fi
 fi
+
+./publish.sh
