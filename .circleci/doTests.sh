@@ -11,8 +11,8 @@ frontendDriverArray=`echo $frontendDriverJson | jq ".versions"`
 echo "got frontend driver relations"
 
 # get sdk version
-version=`cat ../app/build.gradle | grep -e "publishVersionID =" -e "publishVersionID="`
-while IFS="'" read -ra ADDR; do
+version=`cat ../pubspec.yaml | grep -e 'version:'`
+while IFS=':' read -ra ADDR; do
     counter=0
     for i in "${ADDR[@]}"; do
         if [ $counter == 1 ]
@@ -22,6 +22,7 @@ while IFS="'" read -ra ADDR; do
         counter=$(($counter+1))
     done
 done <<< "$version"
+version=`echo $version | xargs`
 
 responseStatus=`curl -s -o /dev/null -w "%{http_code}" -X PUT \
   https://api.supertokens.io/0/frontend \
