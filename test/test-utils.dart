@@ -11,7 +11,7 @@ class SuperTokensTestUtils {
     await nonInterceptedClient.post(Uri.parse(beforeEachAPIURL));
   }
 
-  static afterEachTest() async {
+  static Future<void> afterEachTest() async {
     String afterAPIURL = "${testAPIBase}after";
     await nonInterceptedClient.post(Uri.parse(afterAPIURL));
   }

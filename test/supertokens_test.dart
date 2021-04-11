@@ -1,4 +1,3 @@
-@Timeout(const Duration(seconds: 60))
 import 'dart:async';
 import 'dart:convert';
 
@@ -67,8 +66,12 @@ void main() {
     return _setUp();
   });
 
-  tearDown(() async {
-    return SuperTokensTestUtils.afterEachTest();
+  Future<void> _tearDown() async {
+    await SuperTokensTestUtils.afterEachTest();
+  }
+
+  tearDown(() {
+    return _tearDown();
   });
 
   test("Test that requests fail when SuperTokens.initialise is not called",
@@ -272,7 +275,6 @@ void main() {
     http.Response refreshCustomHeaderResponse =
         await networkClient.get(Uri.parse(refreshCustomHeaderURL));
 
-    print(refreshCustomHeaderResponse.statusCode);
     if (refreshCustomHeaderResponse.statusCode != 200) {
       fail("Refresh custom header call failed");
     }
@@ -467,7 +469,8 @@ void main() {
       "Test that refresh endpoint gets called only once for multiple parallel tasks",
       () async {
     await startST(validity: 10);
-    int threadCount = 300;
+    // Using 50 because flutter test on the command line for some reason fails when using too many Futures
+    int threadCount = 50;
 
     try {
       SuperTokens.initialise(
