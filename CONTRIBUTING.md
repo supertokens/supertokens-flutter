@@ -22,10 +22,10 @@ We're so excited you're interested in helping with SuperTokens! We are happy to 
 1. Please setup `supertokens-core` by following [this guide](https://github.com/supertokens/supertokens-core/blob/master/CONTRIBUTING.md#development-setup). If you are not contributing to `supertokens-core`, please skip  steps 1 & 4 under "Project Setup" section.
 2. Clone the forked repository in the parent directory of the previously setup `supertokens-root`. That is, `supertokens-flutter` and `supertokens-root` should exist side by side within the same parent directory.
 3. `cd supertokens-flutter`
-<!-- 4. Add git pre-commit hooks
+4. Add git pre-commit hooks
    ```
    ./setup-pre-commit.sh
-   ``` -->
+   ```
 5. Ensure all packages are fetched by running `flutter pub get` or by using your IDE shortcut.
 
 ## Modifying Code  

@@ -8,7 +8,7 @@ This is a Flutter SDK written in pure dart that is responsible for maintaining a
 Learn more at https://supertokens.io
 
 ## Documentation
-Coming soon
+To see documentation, please click [here](https://supertokens.io/docs/community/introduction).
 
 ## Contributing
 Please refer to the [CONTRIBUTING.md](https://github.com/supertokens/supertokens-flutter/blob/master/CONTRIBUTING.md) file in this repo.
