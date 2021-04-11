@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/src/utilities.dart';
 

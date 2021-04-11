@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+// ignore: invalid_annotation_target
 @Timeout(const Duration(seconds: 60))
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -460,23 +462,134 @@ void main() {
 
   test(
       "Test that refresh endpoint gets called only once for multiple parallel tasks",
-      () {
-    // TODO: Add test case
-    expect(true, false);
+      () async {
+    await startST(validity: 10);
+    int threadCount = 300;
+
+    try {
+      SuperTokens.initialise(
+        refreshTokenEndpoint: refreshTokenUrl,
+        sessionExpiryStatusCode: sessionExpiryCode,
+      );
+    } catch (e) {
+      fail("Error initialising super tokens");
+    }
+
+    http.Response loginResponse =
+        await networkClient.post(Uri.parse(loginAPIURL));
+
+    if (loginResponse.statusCode != 200) {
+      fail("Login API failed");
+    }
+
+    List<bool> results = [];
+
+    Future<void> getUserInfo() async {
+      http.Response response =
+          await networkClient.get(Uri.parse(userInfoAPIURL));
+
+      results.add(response.statusCode == 200);
+    }
+
+    await Future.delayed(Duration(seconds: 12));
+
+    await Future.wait(List<int>.generate(threadCount, (index) => index + 1)
+        .map((e) => getUserInfo()));
+
+    int refreshCounter = await SuperTokensTestUtils.getRefreshTokenCounter();
+
+    if (refreshCounter != 1 ||
+        results.contains(false) ||
+        results.length != threadCount) {
+      fail(
+          "Either refresh count did not match, one of the calls failed or the result count does not equal request count");
+    }
   });
 
   test(
       "Test that doesSessionExist returns false after credentials are cleared by a network response",
-      () {
-    // TODO: Add test case
-    expect(true, false);
+      () async {
+    await startST(validity: 10);
+
+    try {
+      SuperTokens.initialise(
+        refreshTokenEndpoint: refreshTokenUrl,
+        sessionExpiryStatusCode: sessionExpiryCode,
+      );
+    } catch (e) {
+      fail("Error initialising super tokens");
+    }
+
+    http.Response loginResponse =
+        await networkClient.post(Uri.parse(loginAPIURL));
+
+    if (loginResponse.statusCode != 200) {
+      fail("Login API failed");
+    }
+
+    if (!(await SuperTokens.doesSessionExist())) {
+      fail("Session does not exist according to library, when it should");
+    }
+
+    String? idRefresh = await IdRefreshToken.getToken();
+    String? antiCSRFToken = await AntiCSRF.getToken(idRefresh);
+
+    if (idRefresh == null || antiCSRFToken == null) {
+      fail("Either idRefresh or antiCSRFToken is null after login");
+    }
+
+    http.Response logoutResponse =
+        await networkClient.post(Uri.parse(logoutAPIURL));
+    if (logoutResponse.statusCode != 200) {
+      fail("Logout API failed");
+    }
+
+    if ((await SuperTokens.doesSessionExist())) {
+      fail("Session exists according to library, when it should not");
+    }
+
+    String? idRefreshAfter = await IdRefreshToken.getToken();
+    String? antiCSRFTokenAfter = await AntiCSRF.getToken(idRefreshAfter);
+
+    if (idRefreshAfter != null || antiCSRFTokenAfter != null) {
+      fail("Either idRefresh or antiCSRFToken is not null after logout");
+    }
   });
 
   test(
       "Test that doesSessionExist returns true when valid credentials are present",
-      () {
-    // TODO: Add test case
-    expect(true, false);
+      () async {
+    await startST(validity: 1);
+
+    try {
+      SuperTokens.initialise(
+        refreshTokenEndpoint: refreshTokenUrl,
+        sessionExpiryStatusCode: sessionExpiryCode,
+      );
+    } catch (e) {
+      fail("Error initialising super tokens");
+    }
+
+    http.Response loginResponse =
+        await networkClient.post(Uri.parse(loginAPIURL));
+
+    if (loginResponse.statusCode != 200) {
+      fail("Login API failed");
+    }
+
+    if (!(await SuperTokens.doesSessionExist())) {
+      fail("Session does not exist according to the library, when it should");
+    }
+
+    http.Response logoutResponse =
+        await networkClient.post(Uri.parse(logoutAPIURL));
+    if (logoutResponse.statusCode != 200) {
+      fail("Logout API failed");
+    }
+
+    if ((await SuperTokens.doesSessionExist())) {
+      fail("Session exists according to library, when it should not");
+    }
   });
 
   test(

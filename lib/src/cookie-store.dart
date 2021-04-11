@@ -47,6 +47,7 @@ class SuperTokensCookieStore {
       Uri uriToStore = await _getCookieUri(uri, element);
       List<Cookie> currentCookies = _allCookies?[uriToStore] ?? List.from([]);
       currentCookies = currentCookies
+          // ignore: unnecessary_null_comparison
           .where((e) => e != null && e.name != element.name)
           .toList();
 
@@ -69,6 +70,7 @@ class SuperTokensCookieStore {
   /// Returns a Uri to use when saving the cookie
   Future<Uri> _getCookieUri(Uri requestUri, Cookie cookie) async {
     Uri cookieUri = Uri.parse(
+        // ignore: unnecessary_null_comparison
         "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "/" : cookie.path}");
 
     if (cookie.domain != null) {
@@ -79,6 +81,7 @@ class SuperTokensCookieStore {
 
       try {
         cookieUri = Uri(
+          // ignore: unnecessary_null_comparison
           scheme: requestUri.scheme == null ? "http" : requestUri.scheme,
           host: domain,
           path: cookie.path == null ? "/" : cookie.path,
@@ -182,6 +185,7 @@ class SuperTokensCookieStore {
   /// Does not return expired cookies and will remove them from persistent storage if any are found.
   Future<String> getCookieHeaderStringForRequest(Uri uri) async {
     List<Cookie> cookies = await getForRequest(uri);
+    // ignore: unnecessary_null_comparison
     if (cookies != null && cookies.isNotEmpty) {
       List<String> cookiesStringList =
           cookies.map((e) => e.toString()).toList();
