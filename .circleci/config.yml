@@ -7,7 +7,7 @@ jobs:
       - image: rishabhpoddar/supertokens_flutter_sdk_testing
     steps:
       - checkout
-      - flutter pub get
+      - run: flutter pub get
       - run: ./gradlew clean build -x test bintrayUpload -PbintrayUser=supertokens -PbintrayKey=$BINTRAY_KEY -PdryRun=false
       - slack/status
   test:
@@ -25,7 +25,7 @@ jobs:
       - slack/status
 
 workflows:
-  version: 2.1
+  version: 2
   tagged-build:
     jobs:
       - publish:
