@@ -70,7 +70,6 @@ fi
 # add an empty commit if the user has not given a commit hash so that we are sure it's built------------
 if [ $# -eq 0 ]
 then
-    npm run build-pretty
     git add --all
     git commit --allow-empty -m"adding dev-v$version tag to this commit to ensure building"
     git push
