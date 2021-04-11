@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:mutex/mutex.dart';
 import 'package:supertokens/src/anti-csrf.dart';
@@ -23,11 +24,17 @@ class SuperTokensHttpClient extends http.BaseClient {
     return _instance!;
   }
 
-  final http.Client _innerClient;
+  http.Client _innerClient;
   final ReadWriteMutex _refreshAPILock = ReadWriteMutex();
   SuperTokensCookieStore? _cookieStore;
 
   SuperTokensHttpClient._init(this._innerClient);
+
+  // This annotation will result in a warning to anyone using this method outside of this package
+  @visibleForTesting
+  void setInnerClient(http.Client client) {
+    this._innerClient = client;
+  }
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {

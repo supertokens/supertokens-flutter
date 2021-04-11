@@ -1,8 +1,7 @@
+@Timeout(const Duration(seconds: 60))
 import 'dart:async';
 import 'dart:convert';
 
-// ignore: invalid_annotation_target
-@Timeout(const Duration(seconds: 60))
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +22,9 @@ void main() {
   String logoutAPIURL = "${SuperTokensTestUtils.testAPIBase}logout";
   String refreshCustomHeaderURL =
       "${SuperTokensTestUtils.testAPIBase}checkCustomHeader";
+  String testErrorURL = "${SuperTokensTestUtils.testAPIBase}testError";
+  String fakeGetApiURL = "https://www.google.com";
+  String customRequestHeaderURL = "${SuperTokensTestUtils.testAPIBase}header";
 
   int sessionExpiryCode = 401;
 
@@ -52,6 +54,7 @@ void main() {
   }
 
   Future<void> _setUp() async {
+    networkClient.setInnerClient(http.Client());
     WidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     SuperTokens.isInitCalled = false;
@@ -594,29 +597,164 @@ void main() {
 
   test(
       "Test that in the case of API errors the error message is returned to the function using SuperTokensHttpClient",
-      () {
-    // TODO: Add test case
-    expect(true, false);
+      () async {
+    await startST(validity: 1);
+
+    try {
+      SuperTokens.initialise(
+        refreshTokenEndpoint: refreshTokenUrl,
+        sessionExpiryStatusCode: sessionExpiryCode,
+      );
+    } catch (e) {
+      fail("Error initialising super tokens");
+    }
+
+    http.Response response = await networkClient.get(Uri.parse(testErrorURL));
+
+    if (response.statusCode != 500) {
+      fail("Unexpected status code");
+    }
+
+    if (response.body != "custom message") {
+      fail("Incorrect message recieved in response");
+    }
   });
 
   test(
       "Test that network requests to domains other than SuperTokens.apiDomain work fine before, during and after logout",
-      () {
-    // TODO: Add test case
-    expect(true, false);
+      () async {
+    await startST(validity: 1);
+
+    try {
+      SuperTokens.initialise(
+        refreshTokenEndpoint: refreshTokenUrl,
+        sessionExpiryStatusCode: sessionExpiryCode,
+      );
+    } catch (e) {
+      fail("Error initialising super tokens");
+    }
+
+    http.Response responseBefore =
+        await networkClient.get(Uri.parse(fakeGetApiURL));
+    if (responseBefore.statusCode != 200) {
+      fail("External GET API before login failed");
+    }
+
+    http.Response loginResponse =
+        await networkClient.post(Uri.parse(loginAPIURL));
+
+    if (loginResponse.statusCode != 200) {
+      fail("Login API failed");
+    }
+
+    http.Response responseDuring =
+        await networkClient.get(Uri.parse(fakeGetApiURL));
+    if (responseDuring.statusCode != 200) {
+      fail("External GET API after login failed");
+    }
+
+    http.Response logoutResponse =
+        await networkClient.post(Uri.parse(logoutAPIURL));
+    if (logoutResponse.statusCode != 200) {
+      fail("Logout API failed");
+    }
+
+    http.Response responseAfter =
+        await networkClient.get(Uri.parse(fakeGetApiURL));
+    if (responseAfter.statusCode != 200) {
+      fail("External GET API after logout failed");
+    }
   });
 
   test(
       "Test that custom request headers are sent correctly when using SuperTokensHttpClient",
-      () {
-    // TODO: Add test case
-    expect(true, false);
+      () async {
+    await startST(validity: 1);
+
+    try {
+      SuperTokens.initialise(
+        refreshTokenEndpoint: refreshTokenUrl,
+        sessionExpiryStatusCode: sessionExpiryCode,
+      );
+    } catch (e) {
+      fail("Error initialising super tokens");
+    }
+
+    http.Response customHeadersResponseBeforeLogin =
+        await networkClient.get(Uri.parse(customRequestHeaderURL), headers: {
+      "Content-Type": "application/json",
+      "st-custom-header": "testing",
+    });
+
+    if (customHeadersResponseBeforeLogin.statusCode != 200) {
+      fail("API request with custom headers failed");
+    }
+
+    if (!jsonDecode(customHeadersResponseBeforeLogin.body)["success"]) {
+      fail("Unexpected API response recieved");
+    }
+
+    http.Response loginResponse =
+        await networkClient.post(Uri.parse(loginAPIURL));
+
+    if (loginResponse.statusCode != 200) {
+      fail("Login API failed");
+    }
+
+    http.Response customHeadersResponseAfterLogin =
+        await networkClient.get(Uri.parse(customRequestHeaderURL), headers: {
+      "Content-Type": "application/json",
+      "st-custom-header": "testing",
+    });
+
+    if (customHeadersResponseAfterLogin.statusCode != 200) {
+      fail("API request with custom headers failed");
+    }
+
+    if (!jsonDecode(customHeadersResponseBeforeLogin.body)["success"]) {
+      fail("Unexpected API response recieved");
+    }
   });
 
   test(
       "Test that passing an instance of a custom client works as expected when using SuperTokensHttpClient",
-      () {
-    // TODO: Add test case
-    expect(true, false);
+      () async {
+    await startST(validity: 1);
+
+    try {
+      SuperTokens.initialise(
+        refreshTokenEndpoint: refreshTokenUrl,
+        sessionExpiryStatusCode: sessionExpiryCode,
+      );
+    } catch (e) {
+      fail("Error initialising super tokens");
+    }
+
+    _TestHttpClient client = _TestHttpClient(http.Client());
+    networkClient.setInnerClient(client);
+
+    http.Response response =
+        await networkClient.get(Uri.parse(customRequestHeaderURL));
+    if (response.statusCode != 200) {
+      fail("API request with custom headers failed");
+    }
+
+    if (!jsonDecode(response.body)["success"]) {
+      fail("Unexpected API response recieved");
+    }
   });
+}
+
+// Client used to test whether headers attached in a custom client still works as expected when used in combination with supertokens
+class _TestHttpClient extends http.BaseClient {
+  final http.Client _innerClient;
+
+  _TestHttpClient(this._innerClient);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    request.headers["Content-Type"] = "application/json";
+    request.headers["st-custom-header"] = "testing";
+    return _innerClient.send(request);
+  }
 }
