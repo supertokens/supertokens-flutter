@@ -1,7 +1,6 @@
 name: supertokens
 description: SuperTokens session management implementation for Flutter apps
 version: 0.0.1
-author: supertokens
 homepage: https://supertokens.io/
 
 environment:
