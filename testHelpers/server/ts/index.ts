@@ -40,7 +40,7 @@ app.use(jsonParser);
 app.use(cookieParser());
 
 SuperTokens.init({
-  hosts: "http://localhost:3567"
+  hosts: "http://localhost:9000"
 });
 
 app.post("/startst", async (req, res) => {
