@@ -36,6 +36,7 @@ void main() {
         validity: validity,
         refreshValidity: refreshValidity,
         disableAntiCSRF: disableAntiCSRF);
+    await Future.delayed(Duration(seconds: 1));
   }
 
   Future<int> getRefreshTokenCounterUsingST() async {
@@ -60,6 +61,7 @@ void main() {
     await AntiCSRF.removeToken();
     await IdRefreshToken.removeToken();
     await SuperTokensTestUtils.beforeEachTest();
+    await Future.delayed(Duration(seconds: 1));
   }
 
   setUp(() {
@@ -68,6 +70,7 @@ void main() {
 
   Future<void> _tearDown() async {
     await SuperTokensTestUtils.afterEachTest();
+    await Future.delayed(Duration(seconds: 1));
   }
 
   tearDown(() {
@@ -108,6 +111,8 @@ void main() {
     if (response.statusCode != 200) {
       fail("Login API failed");
     }
+
+    await Future.delayed(Duration(seconds: 1));
 
     try {
       SuperTokens.initialise(
@@ -213,6 +218,8 @@ void main() {
     http.Response userInfoResponse =
         await networkClient.get(Uri.parse(userInfoAPIURL));
 
+    await Future.delayed(Duration(seconds: 1));
+
     if (userInfoResponse.statusCode != 200) {
       fail("userInfo API failed");
     }
@@ -301,6 +308,7 @@ void main() {
     }
 
     int counterBefore = await getRefreshTokenCounterUsingST();
+    await Future.delayed(Duration(seconds: 1));
 
     if (counterBefore != 0) {
       fail("API call before failed");
@@ -312,6 +320,7 @@ void main() {
     if (loginResponse.statusCode != 200) {
       fail("Login API failed");
     }
+    await Future.delayed(Duration(seconds: 1));
 
     int counterDuring = await getRefreshTokenCounterUsingST();
 
@@ -324,6 +333,8 @@ void main() {
     if (logoutResponse.statusCode != 200) {
       fail("Logout API failed");
     }
+
+    await Future.delayed(Duration(seconds: 1));
 
     if (await SuperTokens.doesSessionExist()) {
       fail("Session exixts according to supertokens when it shouldnt");
@@ -358,6 +369,7 @@ void main() {
 
     http.Response loginResponse =
         await networkClient.post(Uri.parse(loginAPIURL));
+    await Future.delayed(Duration(seconds: 1));
 
     if (loginResponse.statusCode != 200) {
       fail("Login API failed");
@@ -374,6 +386,7 @@ void main() {
     if (logoutResponse.statusCode != 200) {
       fail("Logout API failed");
     }
+    await Future.delayed(Duration(seconds: 1));
 
     if (await SuperTokens.doesSessionExist()) {
       fail("Session exixts according to supertokens when it shouldnt");
@@ -459,6 +472,8 @@ void main() {
       fail("UserInfo API failed");
     }
 
+    await Future.delayed(Duration(seconds: 1));
+
     int refreshCounter = await SuperTokensTestUtils.getRefreshTokenCounter();
     if (refreshCounter != 1) {
       fail("Refresh counter was $refreshCounter, expected 1");
@@ -493,6 +508,8 @@ void main() {
     Future<void> getUserInfo() async {
       http.Response response =
           await networkClient.get(Uri.parse(userInfoAPIURL));
+
+      await Future.delayed(Duration(seconds: 1));
 
       results.add(response.statusCode == 200);
     }
@@ -533,6 +550,8 @@ void main() {
       fail("Login API failed");
     }
 
+    await Future.delayed(Duration(seconds: 1));
+
     if (!(await SuperTokens.doesSessionExist())) {
       fail("Session does not exist according to library, when it should");
     }
@@ -549,6 +568,8 @@ void main() {
     if (logoutResponse.statusCode != 200) {
       fail("Logout API failed");
     }
+
+    await Future.delayed(Duration(seconds: 1));
 
     if ((await SuperTokens.doesSessionExist())) {
       fail("Session exists according to library, when it should not");
@@ -583,6 +604,8 @@ void main() {
       fail("Login API failed");
     }
 
+    await Future.delayed(Duration(seconds: 1));
+
     if (!(await SuperTokens.doesSessionExist())) {
       fail("Session does not exist according to the library, when it should");
     }
@@ -592,6 +615,8 @@ void main() {
     if (logoutResponse.statusCode != 200) {
       fail("Logout API failed");
     }
+
+    await Future.delayed(Duration(seconds: 1));
 
     if ((await SuperTokens.doesSessionExist())) {
       fail("Session exists according to library, when it should not");
@@ -613,6 +638,8 @@ void main() {
     }
 
     http.Response response = await networkClient.get(Uri.parse(testErrorURL));
+
+    await Future.delayed(Duration(seconds: 1));
 
     if (response.statusCode != 500) {
       fail("Unexpected status code");
@@ -643,6 +670,8 @@ void main() {
       fail("External GET API before login failed");
     }
 
+    await Future.delayed(Duration(seconds: 1));
+
     http.Response loginResponse =
         await networkClient.post(Uri.parse(loginAPIURL));
 
@@ -650,17 +679,23 @@ void main() {
       fail("Login API failed");
     }
 
+    await Future.delayed(Duration(seconds: 1));
+
     http.Response responseDuring =
         await networkClient.get(Uri.parse(fakeGetApiURL));
     if (responseDuring.statusCode != 200) {
       fail("External GET API after login failed");
     }
 
+    await Future.delayed(Duration(seconds: 1));
+
     http.Response logoutResponse =
         await networkClient.post(Uri.parse(logoutAPIURL));
     if (logoutResponse.statusCode != 200) {
       fail("Logout API failed");
     }
+
+    await Future.delayed(Duration(seconds: 1));
 
     http.Response responseAfter =
         await networkClient.get(Uri.parse(fakeGetApiURL));
@@ -689,6 +724,8 @@ void main() {
       "st-custom-header": "testing",
     });
 
+    await Future.delayed(Duration(seconds: 1));
+
     if (customHeadersResponseBeforeLogin.statusCode != 200) {
       fail("API request with custom headers failed");
     }
@@ -704,11 +741,15 @@ void main() {
       fail("Login API failed");
     }
 
+    await Future.delayed(Duration(seconds: 1));
+
     http.Response customHeadersResponseAfterLogin =
         await networkClient.get(Uri.parse(customRequestHeaderURL), headers: {
       "Content-Type": "application/json",
       "st-custom-header": "testing",
     });
+
+    await Future.delayed(Duration(seconds: 1));
 
     if (customHeadersResponseAfterLogin.statusCode != 200) {
       fail("API request with custom headers failed");
@@ -738,6 +779,8 @@ void main() {
 
     http.Response response =
         await networkClient.get(Uri.parse(customRequestHeaderURL));
+
+    await Future.delayed(Duration(seconds: 1));
     if (response.statusCode != 200) {
       fail("API request with custom headers failed");
     }
