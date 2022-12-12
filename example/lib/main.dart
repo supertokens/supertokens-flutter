@@ -8,10 +8,10 @@ import 'package:supertokens/supertokens.dart';
 import 'network-manager.dart';
 
 void main() {
-  SuperTokens.initialise(
-    refreshTokenEndpoint: "${NetworkManager.baseURL}/refresh",
-    sessionExpiryStatusCode: 401,
-  );
+  // SuperTokens.initialise(
+  //   refreshTokenEndpoint: "${NetworkManager.baseURL}/refresh",
+  //   sessionExpiryStatusCode: 401,
+  // );
   runApp(MyApp());
 }
 

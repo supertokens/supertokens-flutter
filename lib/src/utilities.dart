@@ -1,4 +1,8 @@
 import 'package:http/http.dart' as http;
+import 'package:supertokens/src/normalised-url-domain.dart';
+import 'package:supertokens/src/normalised-url-path.dart';
+
+import '../supertokens.dart';
 
 class SuperTokensUtils {
   /// Returns the domain of the provided url if valid
@@ -50,5 +54,86 @@ class SuperTokensUtils {
       ..headers.addAll(request.headers);
 
     return requestCopy;
+  }
+}
+
+class Utils {
+  static bool isIPAddress(String input) {
+    RegExp regex = RegExp(
+        r"^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    return regex.hasMatch(input);
+  }
+}
+
+class NormalisedInputType {
+  late String apiDomain;
+  late String? apiBasePath;
+  late int sessionExpiredStatusCode = 401;
+  late String? cookieDomain;
+  late String? userDefaultdSuiteName;
+  late Function(Eventype) eventHandler;
+  late Function(APIAction, http.Request) preAPIHook;
+  late Function(APIAction, http.Request, http.Response) postAPIHook;
+
+  NormalisedInputType(
+      String apiDomain,
+      String? apiBasePath,
+      int? sessionExpiredStatusCode,
+      String? cookieDomain,
+      String? userDefaultdSuiteName,
+      Function(Eventype)? eventHandler,
+      Function(APIAction, http.Request)? preAPIHook,
+      Function(APIAction, http.Request, http.Response)? postAPIHook) {
+    this.apiDomain = apiDomain;
+    this.apiBasePath = apiBasePath;
+    this.sessionExpiredStatusCode = sessionExpiredStatusCode ?? 401;
+    this.cookieDomain = cookieDomain;
+    this.userDefaultdSuiteName = userDefaultdSuiteName;
+    this.eventHandler = eventHandler!;
+    this.preAPIHook = preAPIHook!;
+    this.postAPIHook = postAPIHook!;
+  }
+
+  factory NormalisedInputType.normaliseInputType(
+    String apiDomain,
+    String? apiBasePath,
+    int? sessionExpiredStatusCode,
+    String? cookieDomain,
+    String? userDefaultdSuiteName,
+    Function(Eventype)? eventHandler,
+    Function(APIAction, http.Request)? preAPIHook,
+    Function(APIAction, http.Request, http.Response)? postAPIHook,
+  ) {
+    var _apiDOmain = NormalisedURLDomain(apiDomain);
+    var _apiBasePath = NormalisedURLPath("/auth");
+
+    if (apiBasePath != null) _apiBasePath = NormalisedURLPath(apiBasePath);
+
+    var _sessionExpiredStatusCode = 401;
+    if (sessionExpiredStatusCode != null)
+      _sessionExpiredStatusCode = sessionExpiredStatusCode;
+
+    String? _cookieDomain = null;
+    if (cookieDomain != null) _cookieDomain = cookieDomain;
+
+    Function(Eventype)? _eventHandler = null;
+    if (eventHandler != null) _eventHandler = eventHandler;
+
+    Function(APIAction, http.Request)? _preAPIHook = (_, request) => request;
+    if (preAPIHook != null) _preAPIHook = preAPIHook;
+
+    Function(APIAction, http.Request, http.Response) _postAPIHook =
+        (_, __, ___) => null;
+    if (postAPIHook != null) _postAPIHook = postAPIHook;
+
+    return NormalisedInputType(
+        _apiDOmain.value,
+        _apiBasePath.value,
+        _sessionExpiredStatusCode,
+        _cookieDomain,
+        userDefaultdSuiteName,
+        _eventHandler,
+        _preAPIHook,
+        _postAPIHook);
   }
 }
