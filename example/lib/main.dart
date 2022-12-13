@@ -8,10 +8,10 @@ import 'package:supertokens/supertokens.dart';
 import 'network-manager.dart';
 
 void main() {
-  // SuperTokens.initialise(
-  //   refreshTokenEndpoint: "${NetworkManager.baseURL}/refresh",
-  //   sessionExpiryStatusCode: 401,
-  // );
+  SuperTokens.init(
+    apiDomain:
+        "https://41f15da1602f11edb6b30fbcd81a03c2-us-east-1.aws.supertokens.io:3573",
+  );
   runApp(MyApp());
 }
 

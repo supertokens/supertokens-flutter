@@ -25,7 +25,7 @@ class NetworkManager {
   }
 
   Future<void> logout() async {
-    await superTokensHttpClient.post(Uri.parse("$baseURL/logout"));
+    await SuperTokens.signOut((p0) => null);
     return;
   }
 

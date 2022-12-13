@@ -101,7 +101,7 @@ class NormalisedInputType {
     String? cookieDomain,
     String? userDefaultdSuiteName,
     Function(Eventype)? eventHandler,
-    Function(APIAction, http.Request)? preAPIHook,
+    http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
   ) {
     var _apiDOmain = NormalisedURLDomain(apiDomain);

@@ -25,7 +25,7 @@ class SuperTokens {
   static String refreshTokenUrl = "";
   static String signOutUrl = "";
   static String rid = '';
-  static NormalisedInputType? config;
+  static late NormalisedInputType config;
 
   static void init({
     required String apiDomain,
@@ -34,7 +34,7 @@ class SuperTokens {
     String? cookieDomain,
     String? userDefaultdSuiteName,
     Function(Eventype)? eventHandler,
-    Function(APIAction, http.Request)? preAPIHook,
+    http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
   }) {
     if (SuperTokens.isInitCalled) {
@@ -52,9 +52,9 @@ class SuperTokens {
         postAPIHook);
 
     SuperTokens.refreshTokenUrl =
-        config!.apiDomain + (config!.apiBasePath ?? '') + "/session/refresh";
+        config.apiDomain + (config.apiBasePath ?? '') + "/session/refresh";
     SuperTokens.signOutUrl =
-        config!.apiDomain + (config!.apiBasePath ?? '') + "/signout";
+        config.apiDomain + (config.apiBasePath ?? '') + "/signout";
     SuperTokens.rid = "session";
     SuperTokens.isInitCalled = true;
   }
@@ -97,7 +97,7 @@ class SuperTokens {
 
   static Future<void> signOut(Function(Exception?) completionHandler) async {
     if (!(await doesSessionExist())) {
-      SuperTokens.config!.eventHandler(Eventype.SIGN_OUT);
+      SuperTokens.config.eventHandler(Eventype.SIGN_OUT);
       completionHandler(null);
       return;
     }
@@ -112,22 +112,23 @@ class SuperTokens {
     }
 
     http.Request signOut = http.Request('post', uri);
-    SuperTokens.config!.preAPIHook(APIAction.SIGN_OUT, signOut);
+    signOut = SuperTokens.config.preAPIHook(APIAction.SIGN_OUT, signOut);
 
-    var resp;
+    late http.StreamedResponse resp;
 
     try {
-      resp = await signOut.send();
+      SuperTokensHttpClient client =
+          SuperTokensHttpClient.getInstance(http.Client());
+      resp = await client.send(signOut);
       if (resp.statusCode >= 300) {
         completionHandler(SuperTokensException(
             "Sign out failed with response code ${resp.statusCode}"));
         return;
       }
-      SuperTokens.config!.postAPIHook(APIAction.SIGN_OUT, signOut, resp);
-    } catch (e) {}
+      http.Response response = await http.Response.fromStream(resp);
+      SuperTokens.config.postAPIHook(APIAction.SIGN_OUT, signOut, response);
 
-    try {
-      var dataStr = await resp.stream.bytesToString();
+      var dataStr = response.body;
       Map<String, dynamic> data = jsonDecode(dataStr);
 
       if (data['status'] == 'GENERAL_ERROR') {

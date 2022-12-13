@@ -50,7 +50,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     }
 
     if (SuperTokensUtils.getApiDomain(request.url.toString()) !=
-        SuperTokens.config!.apiDomain) {
+        SuperTokens.config.apiDomain) {
       return _innerClient.send(request);
     }
 
@@ -157,7 +157,7 @@ class SuperTokensHttpClient extends http.BaseClient {
           callback) async {
     String? postLockIdRefresh = await IdRefreshToken.getToken();
     if (postLockIdRefresh == null) {
-      SuperTokens.config!.eventHandler(Eventype.UNAUTHORISED);
+      SuperTokens.config.eventHandler(Eventype.UNAUTHORISED);
       callback(
           UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED));
       return;
@@ -176,7 +176,7 @@ class SuperTokensHttpClient extends http.BaseClient {
     refreshReq.headers['rid'] = SuperTokens.rid;
     // TODO: fdi-version
     refreshReq =
-        SuperTokens.config!.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
+        SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
     try {
       var resp = await refreshReq.send();
       http.Response response = await http.Response.fromStream(resp);
@@ -186,7 +186,7 @@ class SuperTokensHttpClient extends http.BaseClient {
         IdRefreshToken.setToken(headerFeilds[idRefreshHeaderKey] as String);
         removeIdRefreshToken = false;
       }
-      if (response.statusCode == SuperTokens.config!.sessionExpiredStatusCode &&
+      if (response.statusCode == SuperTokens.config.sessionExpiredStatusCode &&
           removeIdRefreshToken) {
         IdRefreshToken.setToken('remove');
       }
@@ -197,7 +197,7 @@ class SuperTokensHttpClient extends http.BaseClient {
                 "Refresh API returned with status code: ${response.statusCode}"));
       }
 
-      SuperTokens.config!
+      SuperTokens.config
           .postAPIHook(APIAction.REFRESH_TOKEN, refreshReq, response);
 
       String? idRefreshToken = await IdRefreshToken.getToken();
@@ -218,7 +218,7 @@ class SuperTokensHttpClient extends http.BaseClient {
         return;
       }
 
-      SuperTokens.config!.eventHandler(Eventype.REFRESH_SESSION);
+      SuperTokens.config.eventHandler(Eventype.REFRESH_SESSION);
       callback(UnauthorisedResponse(status: UnauthorisedStatus.RETRY));
     } catch (e) {
       callback(UnauthorisedResponse(status: UnauthorisedStatus.API_ERROR));

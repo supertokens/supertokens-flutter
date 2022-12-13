@@ -82,7 +82,7 @@ class FrontToken {
       String newPayloadString = newTokenPayload.toString();
 
       if (oldPayloadString != newPayloadString) {
-        SuperTokens.config!.eventHandler(Eventype.ACCESS_TOKEN_PAYLOAD_UPDATED);
+        SuperTokens.config.eventHandler(Eventype.ACCESS_TOKEN_PAYLOAD_UPDATED);
       }
     }
 
