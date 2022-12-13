@@ -4,4 +4,4 @@
 /// [SuperTokensHttpClient] uses SharedPreferences to store cookies across app launches
 library supertokens;
 
-export "src/supertokens.dart";
+export "src/supertokens-http-client.dart";

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:supertokens/supertokens.dart';
+import 'package:supertokens/http.dart';
 
 class NetworkManager {
   static NetworkManager shared = NetworkManager._init();

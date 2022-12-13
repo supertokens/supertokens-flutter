@@ -107,25 +107,23 @@ class SuperTokensHttpClient extends http.BaseClient {
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
-          void Function(UnauthorisedResponse, {SuperTokensException? error})
-              callback =
-              (UnauthorisedResponse x, {SuperTokensException? error}) async {
-            if (x.status == UnauthorisedStatus.RETRY) {
+          dynamic shouldRetry =
+              await onUnauthorisedResponse(preRequestIdRefreshToken);
+          if (shouldRetry is UnauthorisedResponse) {
+            if (shouldRetry.status == UnauthorisedStatus.RETRY) {
               send(request);
             } else {
               if (IdRefreshToken.getToken() == null) {
                 AntiCSRF.removeToken();
                 FrontToken.removeToken();
               }
-              if (x.exception != null) {
+              if (shouldRetry.exception != null) {
                 var respObject = await http.Response.fromStream(response);
                 var data = respObject.body;
               }
             }
-          };
-          bool shouldRetry =
-              await onUnauthorisedResponse(preRequestIdRefreshToken, callback);
-          if (!shouldRetry) {
+          }
+          if (shouldRetry is bool && !shouldRetry) {
             return response;
           }
         } else {
@@ -151,20 +149,14 @@ class SuperTokensHttpClient extends http.BaseClient {
 
   // static resolveToUser(String data)
 
-  static Future onUnauthorisedResponse(
-      String? preRequestIdRefresh,
-      void Function(UnauthorisedResponse, {SuperTokensException? error})
-          callback) async {
+  static Future onUnauthorisedResponse(String? preRequestIdRefresh) async {
     String? postLockIdRefresh = await IdRefreshToken.getToken();
     if (postLockIdRefresh == null) {
       SuperTokens.config.eventHandler(Eventype.UNAUTHORISED);
-      callback(
-          UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED));
-      return;
+      return UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED);
     }
     if (postLockIdRefresh != preRequestIdRefresh) {
-      callback(UnauthorisedResponse(status: UnauthorisedStatus.RETRY));
-      return;
+      return UnauthorisedResponse(status: UnauthorisedStatus.RETRY);
     }
     Uri refreshUrl = Uri.parse(SuperTokens.refreshTokenUrl);
     http.Request refreshReq = http.Request('POST', refreshUrl);
@@ -192,7 +184,8 @@ class SuperTokensHttpClient extends http.BaseClient {
       }
 
       if (response.statusCode >= 300) {
-        callback(UnauthorisedResponse(status: UnauthorisedStatus.API_ERROR),
+        return UnauthorisedResponse(
+            status: UnauthorisedStatus.API_ERROR,
             error: SuperTokensException(
                 "Refresh API returned with status code: ${response.statusCode}"));
       }
@@ -213,15 +206,13 @@ class SuperTokensHttpClient extends http.BaseClient {
       if (idRefreshToken == null) {
         AntiCSRF.removeToken();
         FrontToken.removeToken();
-        callback(
-            UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED));
-        return;
+        return UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED);
       }
 
       SuperTokens.config.eventHandler(Eventype.REFRESH_SESSION);
-      callback(UnauthorisedResponse(status: UnauthorisedStatus.RETRY));
+      return UnauthorisedResponse(status: UnauthorisedStatus.RETRY);
     } catch (e) {
-      callback(UnauthorisedResponse(status: UnauthorisedStatus.API_ERROR));
+      return UnauthorisedResponse(status: UnauthorisedStatus.API_ERROR);
     }
   }
 }
@@ -234,10 +225,12 @@ enum UnauthorisedStatus {
 
 class UnauthorisedResponse {
   final UnauthorisedStatus status;
+  final Exception? error;
   final http.ClientException? exception;
 
   UnauthorisedResponse({
     required this.status,
+    this.error,
     this.exception,
   });
 }

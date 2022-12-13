@@ -5,7 +5,7 @@ import 'package:supertokens/src/front-token.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/src/utilities.dart';
 import 'package:http/http.dart' as http;
-import 'package:supertokens/supertokens.dart';
+import 'package:supertokens/src/supertokens-http-client.dart';
 
 enum Eventype {
   SIGN_OUT,
@@ -132,7 +132,7 @@ class SuperTokens {
       Map<String, dynamic> data = jsonDecode(dataStr);
 
       if (data['status'] == 'GENERAL_ERROR') {
-        completionHandler(SuperTokensException(data['message']));
+        completionHandler(SuperTokensGeneralError(data['message']));
       }
     } catch (e) {
       completionHandler(SuperTokensException("Invalid sign out resopnse"));
@@ -145,13 +145,15 @@ class SuperTokens {
     bool shouldRetry = false;
     Exception? exception;
 
-    SuperTokensHttpClient.onUnauthorisedResponse(preRequestIdRefreshToken,
-        (unauthResponse, {error}) {
-      if (unauthResponse.status == UnauthorisedStatus.API_ERROR) {
-        exception = unauthResponse.exception as SuperTokensException;
+    dynamic resp =
+        SuperTokensHttpClient.onUnauthorisedResponse(preRequestIdRefreshToken);
+    if (resp is UnauthorisedResponse) {
+      if (resp.status == UnauthorisedStatus.API_ERROR) {
+        exception = resp.exception as SuperTokensException;
+      } else {
+        shouldRetry = resp.status == UnauthorisedStatus.RETRY;
       }
-      shouldRetry = unauthResponse.status == UnauthorisedStatus.RETRY;
-    });
+    }
     if (exception != null) {
       throw exception!;
     }
