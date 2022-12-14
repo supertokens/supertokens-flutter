@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:mutex/mutex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
@@ -26,7 +28,10 @@ class FrontToken {
 
   // TODO: parse front token
   static Map<String, dynamic> _parseFrontToken(fronTokenDecoded) {
-    return {};
+    var base64Decoded = base64Decode(fronTokenDecoded);
+    String decodedString = new String.fromCharCodes(base64Decoded);
+    var result = jsonDecode(decodedString);
+    return result;
   }
 
   static Map<String, dynamic>? _getTokenInfo() {

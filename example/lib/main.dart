@@ -9,8 +9,7 @@ import 'network-manager.dart';
 
 void main() {
   SuperTokens.init(
-    apiDomain:
-        "https://41f15da1602f11edb6b30fbcd81a03c2-us-east-1.aws.supertokens.io:3573",
+    apiDomain: "localhost:5000",
   );
   runApp(MyApp());
 }

@@ -95,10 +95,12 @@ class SuperTokens {
     return idRefreshToken != null;
   }
 
-  static Future<void> signOut(Function(Exception?) completionHandler) async {
+  static Future<void> signOut(Function(Exception?)? completionHandler) async {
     if (!(await doesSessionExist())) {
       SuperTokens.config.eventHandler(Eventype.SIGN_OUT);
-      completionHandler(null);
+      if (completionHandler != null) {
+        completionHandler(null);
+      }
       return;
     }
 
@@ -106,8 +108,10 @@ class SuperTokens {
     try {
       uri = Uri.parse(SuperTokens.signOutUrl);
     } catch (e) {
-      completionHandler(SuperTokensException(
-          "Please provide a valid apiDomain and apiBasePath"));
+      if (completionHandler != null) {
+        completionHandler(SuperTokensException(
+            "Please provide a valid apiDomain and apiBasePath"));
+      }
       return;
     }
 
@@ -121,8 +125,10 @@ class SuperTokens {
           SuperTokensHttpClient.getInstance(http.Client());
       resp = await client.send(signOut);
       if (resp.statusCode >= 300) {
-        completionHandler(SuperTokensException(
-            "Sign out failed with response code ${resp.statusCode}"));
+        if (completionHandler != null) {
+          completionHandler(SuperTokensException(
+              "Sign out failed with response code ${resp.statusCode}"));
+        }
         return;
       }
       http.Response response = await http.Response.fromStream(resp);
@@ -132,10 +138,14 @@ class SuperTokens {
       Map<String, dynamic> data = jsonDecode(dataStr);
 
       if (data['status'] == 'GENERAL_ERROR') {
-        completionHandler(SuperTokensGeneralError(data['message']));
+        if (completionHandler != null) {
+          completionHandler(SuperTokensGeneralError(data['message']));
+        }
       }
     } catch (e) {
-      completionHandler(SuperTokensException("Invalid sign out resopnse"));
+      if (completionHandler != null) {
+        completionHandler(SuperTokensException("Invalid sign out resopnse"));
+      }
       return;
     }
   }

@@ -9,6 +9,7 @@ import 'package:supertokens/src/errors.dart';
 import 'package:supertokens/src/front-token.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/src/utilities.dart';
+import 'package:supertokens/src/version.dart';
 import 'package:supertokens/supertokens.dart';
 
 import 'constants.dart';
@@ -107,24 +108,19 @@ class SuperTokensHttpClient extends http.BaseClient {
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
-          dynamic shouldRetry =
+          UnauthorisedResponse shouldRetry =
               await onUnauthorisedResponse(preRequestIdRefreshToken);
-          if (shouldRetry is UnauthorisedResponse) {
-            if (shouldRetry.status == UnauthorisedStatus.RETRY) {
-              send(request);
-            } else {
-              if (IdRefreshToken.getToken() == null) {
-                AntiCSRF.removeToken();
-                FrontToken.removeToken();
-              }
-              if (shouldRetry.exception != null) {
-                var respObject = await http.Response.fromStream(response);
-                var data = respObject.body;
-              }
+          if (shouldRetry.status == UnauthorisedStatus.RETRY) {
+            send(request);
+          } else {
+            if (IdRefreshToken.getToken() == null) {
+              AntiCSRF.removeToken();
+              FrontToken.removeToken();
             }
-          }
-          if (shouldRetry is bool && !shouldRetry) {
-            return response;
+            if (shouldRetry.exception != null) {
+              var respObject = await http.Response.fromStream(response);
+              var data = respObject.body;
+            }
           }
         } else {
           String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
@@ -166,7 +162,7 @@ class SuperTokensHttpClient extends http.BaseClient {
       refreshReq.headers[antiCSRFHeaderKey] = antiCSRFToken;
     }
     refreshReq.headers['rid'] = SuperTokens.rid;
-    // TODO: fdi-version
+    refreshReq.headers['fdi-version'] = Version.supported_fdi.join(',');
     refreshReq =
         SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
     try {
