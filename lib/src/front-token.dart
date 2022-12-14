@@ -19,14 +19,13 @@ class FrontToken {
     return FrontToken.tokenInMemory;
   }
 
-  static Future<String?> _getFrontToken() {
-    if (FrontToken.tokenInMemory == null) {
-      return Future.value(null);
+  static Future<String?> _getFrontToken() async {
+    if (await IdRefreshToken.getToken() == null) {
+      return null;
     }
     return _getFronTokenFromStorage();
   }
 
-  // TODO: parse front token
   static Map<String, dynamic> _parseFrontToken(fronTokenDecoded) {
     var base64Decoded = base64Decode(fronTokenDecoded);
     String decodedString = new String.fromCharCodes(base64Decoded);
@@ -34,33 +33,31 @@ class FrontToken {
     return result;
   }
 
-  static Map<String, dynamic>? _getTokenInfo() {
+  static Future<Map<String, dynamic>?> _getTokenInfo() async {
     Map<String, dynamic>? finalReturnValue;
 
-    Future.microtask(() async {
-      while (true) {
-        String? frontToken = await _getFrontToken();
+    while (true) {
+      String? frontToken = await _getFrontToken();
 
-        if (frontToken == null) {
-          var idRefreshToken = IdRefreshToken.getToken();
+      if (frontToken == null) {
+        var idRefreshToken = await IdRefreshToken.getToken();
 
-          if (idRefreshToken == null) {
-            _frontTokenMutex.acquire();
-          } else {
-            finalReturnValue = null;
-            break;
-          }
+        if (idRefreshToken == null) {
+          _frontTokenMutex.acquire();
         } else {
-          finalReturnValue = _parseFrontToken(frontToken);
+          finalReturnValue = null;
           break;
         }
+      } else {
+        finalReturnValue = _parseFrontToken(frontToken);
+        break;
       }
-    });
+    }
     return finalReturnValue;
   }
 
-  static Map<String, dynamic>? getToken() {
-    return _getTokenInfo();
+  static Future<Map<String, dynamic>?> getToken() async {
+    return await _getTokenInfo();
   }
 
   static Future _setFrontTokenToStorage(String? frontToken) async {
@@ -94,11 +91,15 @@ class FrontToken {
     _setFrontTokenToStorage(frontToken);
   }
 
-  static void setToken(String? frontToken) async {
+  static Future<void> setToken(String? frontToken) async {
     await _tokenInfoMutex.acquireWrite();
     await _setFronToken(frontToken);
-    _frontTokenMutex.release();
-    _tokenInfoMutex.release();
+    if (_tokenInfoMutex.isLocked) {
+      _tokenInfoMutex.release();
+    }
+    if (_frontTokenMutex.isLocked) {
+      _frontTokenMutex.release();
+    }
   }
 
   static Future _removeTokenFromStorage() async {
@@ -110,7 +111,11 @@ class FrontToken {
   static Future<void> removeToken() async {
     await _tokenInfoMutex.acquireWrite();
     await _removeTokenFromStorage();
-    _tokenInfoMutex.release();
-    _frontTokenMutex.release();
+    if (_tokenInfoMutex.isLocked) {
+      _tokenInfoMutex.release();
+    }
+    if (_frontTokenMutex.isLocked) {
+      _frontTokenMutex.release();
+    }
   }
 }

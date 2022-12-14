@@ -116,7 +116,7 @@ class NormalisedInputType {
     String? _cookieDomain = null;
     if (cookieDomain != null) _cookieDomain = cookieDomain;
 
-    Function(Eventype)? _eventHandler = null;
+    Function(Eventype)? _eventHandler = (_) => {};
     if (eventHandler != null) _eventHandler = eventHandler;
 
     Function(APIAction, http.Request)? _preAPIHook = (_, request) => request;

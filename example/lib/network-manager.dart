@@ -10,15 +10,15 @@ class NetworkManager {
   static final String baseURL = "http://${"192.168.1.100"}:8080";
 
   http.Client client;
-  SuperTokensHttpClient superTokensHttpClient;
+  Client Client;
   NetworkManager._init() {
     client = http.Client();
-    superTokensHttpClient = SuperTokensHttpClient.getInstance(client);
+    Client = Client.getInstance(client);
   }
 
   Future<void> login() async {
     try {
-      await superTokensHttpClient.post(Uri.parse("$baseURL/login"));
+      await Client.post(Uri.parse("$baseURL/login"));
       return;
     } catch (e) {
       throw e;
@@ -32,8 +32,7 @@ class NetworkManager {
 
   Future<String> getUserInfo() async {
     try {
-      http.Response response =
-          await superTokensHttpClient.get(Uri.parse("$baseURL/userInfo"));
+      http.Response response = await Client.get(Uri.parse("$baseURL/userInfo"));
       Map<String, dynamic> json = jsonDecode(response.body);
       String name = json["name"];
       return name;

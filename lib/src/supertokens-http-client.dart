@@ -1,4 +1,4 @@
-import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -16,22 +16,17 @@ import 'constants.dart';
 
 /// An [http.BaseClient] implementation for using SuperTokens for your network requests.
 /// To make use of supertokens, use this as the client for making network calls instead of [http.Client] or your own custom clients.
-/// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [SuperTokensHttpClient], pass [http.Client()] to use the default.
-class SuperTokensHttpClient extends http.BaseClient {
-  static SuperTokensHttpClient? _instance;
-  static SuperTokensHttpClient getInstance(http.Client innerClient) {
-    if (_instance == null) {
-      _instance = SuperTokensHttpClient._init(innerClient);
+/// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [Client], pass [http.Client()] to use the default.
+class Client extends http.BaseClient {
+  Client({http.Client? client}) {
+    if (client != null) {
+      _innerClient = client;
     }
-
-    return _instance!;
   }
 
-  http.Client _innerClient;
+  http.Client _innerClient = http.Client();
   final ReadWriteMutex _refreshAPILock = ReadWriteMutex();
   SuperTokensCookieStore? _cookieStore;
-
-  SuperTokensHttpClient._init(this._innerClient);
 
   // This annotation will result in a warning to anyone using this method outside of this package
   @visibleForTesting
@@ -47,7 +42,7 @@ class SuperTokensHttpClient extends http.BaseClient {
 
     if (!SuperTokens.isInitCalled) {
       throw http.ClientException(
-          "SuperTokens.initialise must be called before using SuperTokensHttpClient");
+          "SuperTokens.initialise must be called before using Client");
     }
 
     if (SuperTokensUtils.getApiDomain(request.url.toString()) !=
@@ -97,11 +92,19 @@ class SuperTokensHttpClient extends http.BaseClient {
               response.headers[HttpHeaders.setCookieHeader];
           await _cookieStore?.saveFromSetCookieHeader(
               request.url, setCookieFromResponse);
-
+          // response.headers.keys.forEach((element) {
+          //   print('$element: ${response.headers[element]}');
+          // });
           String? idRefreshTokenFromResponse =
               response.headers[idRefreshHeaderKey];
           if (idRefreshTokenFromResponse != null) {
             await IdRefreshToken.setToken(idRefreshTokenFromResponse);
+          }
+
+          String? frontTokenFromResponse =
+              response.headers[frontTokenHeaderKey];
+          if (frontTokenFromResponse != null) {
+            await FrontToken.setToken(frontTokenFromResponse);
           }
         } finally {
           _refreshAPILock.release();
@@ -170,13 +173,20 @@ class SuperTokensHttpClient extends http.BaseClient {
       http.Response response = await http.Response.fromStream(resp);
       Map<String, String> headerFeilds = response.headers;
       bool removeIdRefreshToken = true;
+      bool removeFrontToken = true;
       if (headerFeilds.containsKey(idRefreshHeaderKey)) {
         IdRefreshToken.setToken(headerFeilds[idRefreshHeaderKey] as String);
         removeIdRefreshToken = false;
       }
+      if (headerFeilds.containsKey(frontTokenHeaderKey)) {
+        FrontToken.setToken(headerFeilds[frontTokenHeaderKey] as String);
+        removeFrontToken = false;
+      }
       if (response.statusCode == SuperTokens.config.sessionExpiredStatusCode &&
-          removeIdRefreshToken) {
+          removeIdRefreshToken &&
+          removeFrontToken) {
         IdRefreshToken.setToken('remove');
+        FrontToken.removeToken();
       }
 
       if (response.statusCode >= 300) {
@@ -230,3 +240,24 @@ class UnauthorisedResponse {
     this.exception,
   });
 }
+
+Client _innerClient = Client();
+
+Future<http.Response> get(Uri url, {Map<String, String>? headers}) =>
+    _innerClient.get(url, headers: headers);
+
+Future<http.Response> post(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerClient.post(url, headers: headers, body: body, encoding: encoding);
+
+Future<http.Response> put(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerClient.put(url, headers: headers, body: body, encoding: encoding);
+
+Future<http.Response> patch(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerClient.patch(url, headers: headers, body: body, encoding: encoding);
+
+Future<http.Response> delete(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerClient.delete(url, headers: headers, body: body, encoding: encoding);

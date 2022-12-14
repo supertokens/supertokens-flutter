@@ -12,8 +12,7 @@ import 'package:http/http.dart' as http;
 import 'test-utils.dart';
 
 void main() {
-  SuperTokensHttpClient networkClient =
-      SuperTokensHttpClient.getInstance(http.Client());
+  Client networkClient = Client.getInstance(http.Client());
 
   String loginAPIURL = "${SuperTokensTestUtils.testAPIBase}login";
   String refreshTokenUrl = "${SuperTokensTestUtils.testAPIBase}refresh";
@@ -83,7 +82,7 @@ void main() {
       await networkClient.post(Uri.parse(loginAPIURL));
     } on http.ClientException catch (e) {
       if (e.message !=
-          "SuperTokens.initialise must be called before using SuperTokensHttpClient") {
+          "SuperTokens.initialise must be called before using Client") {
         throw e;
       }
     } catch (e) {
@@ -294,7 +293,7 @@ void main() {
   });
 
   test(
-      "Test that network calls that dont require authentication work properly before, during and after login when using SuperTokensHttpClient",
+      "Test that network calls that dont require authentication work properly before, during and after login when using Client",
       () async {
     await startST(validity: 10);
 
@@ -348,7 +347,7 @@ void main() {
   });
 
   test(
-      "Test that network calls that dont require authentication work properly before, during and after login without using SuperTokensHttpClient",
+      "Test that network calls that dont require authentication work properly before, during and after login without using Client",
       () async {
     await startST(validity: 10);
 
@@ -624,7 +623,7 @@ void main() {
   });
 
   test(
-      "Test that in the case of API errors the error message is returned to the function using SuperTokensHttpClient",
+      "Test that in the case of API errors the error message is returned to the function using Client",
       () async {
     await startST(validity: 1);
 
@@ -704,8 +703,7 @@ void main() {
     }
   });
 
-  test(
-      "Test that custom request headers are sent correctly when using SuperTokensHttpClient",
+  test("Test that custom request headers are sent correctly when using Client",
       () async {
     await startST(validity: 1);
 
@@ -761,7 +759,7 @@ void main() {
   });
 
   test(
-      "Test that passing an instance of a custom client works as expected when using SuperTokensHttpClient",
+      "Test that passing an instance of a custom client works as expected when using Client",
       () async {
     await startST(validity: 1);
 

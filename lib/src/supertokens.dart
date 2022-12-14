@@ -59,43 +59,13 @@ class SuperTokens {
     SuperTokens.isInitCalled = true;
   }
 
-  /// Verifies the validity of the URL and appends the refresh path if needed.
-  /// Returns `String` URL to be used as a the refresh endpoint URL.
-  static String _transformRefreshTokenEndpoint(String refreshTokenEndpoint) {
-    if (!refreshTokenEndpoint.startsWith("http") &&
-        !refreshTokenEndpoint.startsWith("https")) {
-      throw FormatException("URL must start with either http or https");
-    }
-
-    try {
-      String urlStringToReturn = refreshTokenEndpoint;
-      Uri uri = Uri.parse(urlStringToReturn);
-      if (uri.path.isEmpty) {
-        urlStringToReturn += "/session/refresh";
-      } else if (uri.path == "/") {
-        urlStringToReturn += "session/refresh";
-      }
-
-      Uri.parse(
-          urlStringToReturn); // Checking for valid URL after modifications
-
-      return urlStringToReturn;
-    } on FormatException catch (e) {
-      // Throw the error like this to maintain the original error message for format exceptions
-      throw e;
-    } catch (e) {
-      // Throw with a generic message for any other exceptions
-      throw FormatException("Invalid URL provided");
-    }
-  }
-
   /// Use this function to verify if a users session is valid
   static Future<bool> doesSessionExist() async {
     String? idRefreshToken = await IdRefreshToken.getToken();
     return idRefreshToken != null;
   }
 
-  static Future<void> signOut(Function(Exception?)? completionHandler) async {
+  static Future<void> signOut({Function(Exception?)? completionHandler}) async {
     if (!(await doesSessionExist())) {
       SuperTokens.config.eventHandler(Eventype.SIGN_OUT);
       if (completionHandler != null) {
@@ -121,8 +91,7 @@ class SuperTokens {
     late http.StreamedResponse resp;
 
     try {
-      SuperTokensHttpClient client =
-          SuperTokensHttpClient.getInstance(http.Client());
+      Client client = Client();
       resp = await client.send(signOut);
       if (resp.statusCode >= 300) {
         if (completionHandler != null) {
@@ -155,8 +124,7 @@ class SuperTokens {
     bool shouldRetry = false;
     Exception? exception;
 
-    dynamic resp =
-        SuperTokensHttpClient.onUnauthorisedResponse(preRequestIdRefreshToken);
+    dynamic resp = Client.onUnauthorisedResponse(preRequestIdRefreshToken);
     if (resp is UnauthorisedResponse) {
       if (resp.status == UnauthorisedStatus.API_ERROR) {
         exception = resp.exception as SuperTokensException;
@@ -170,15 +138,15 @@ class SuperTokens {
     return shouldRetry;
   }
 
-  static String _getUserId() {
-    Map<String, dynamic>? frontToken = FrontToken.getToken();
+  static Future<String> getUserId() async {
+    Map<String, dynamic>? frontToken = await FrontToken.getToken();
     if (frontToken == null)
       throw SuperTokensException("Session does not exist");
     return frontToken['uid'] as String;
   }
 
   static Future<Map<String, dynamic>> getAccessTokenPayloadSecurely() async {
-    Map<String, dynamic>? frontToken = FrontToken.getToken();
+    Map<String, dynamic>? frontToken = await FrontToken.getToken();
     if (frontToken == null)
       throw SuperTokensException("Session does not exist");
     int accessTokenExpiry = frontToken['ate'] as int;
