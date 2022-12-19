@@ -29,6 +29,7 @@ class SuperTokensCookieStore {
           cookieStrings.map((e) => Cookie.fromSetCookieValue(e)).toList();
       _allCookies?[uri] = cookies;
     });
+    print('hi');
   }
 
   /// Saves the provided cookie list against the provided Uri.
@@ -65,6 +66,7 @@ class SuperTokensCookieStore {
     _allCookies?.removeWhere((key, value) => value.isEmpty);
 
     await _updatePersistentStorage();
+    await _loadFromPersistence();
   }
 
   /// Returns a Uri to use when saving the cookie
@@ -177,6 +179,7 @@ class SuperTokensCookieStore {
 
     _allCookies?[uri] = currentCookies;
     await _updatePersistentStorage();
+    await _loadFromPersistence();
     return;
   }
 

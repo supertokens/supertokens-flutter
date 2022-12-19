@@ -42,7 +42,7 @@ class FrontToken {
       if (frontToken == null) {
         var idRefreshToken = await IdRefreshToken.getToken();
 
-        if (idRefreshToken == null) {
+        if (idRefreshToken != null) {
           _frontTokenMutex.acquire();
         } else {
           finalReturnValue = null;
