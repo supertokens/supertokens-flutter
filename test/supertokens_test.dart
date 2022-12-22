@@ -8,12 +8,11 @@ import 'package:supertokens/src/anti-csrf.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/supertokens.dart';
 import 'package:http/http.dart' as http;
+import 'package:supertokens/http.dart' as networkClient;
 
 import 'test-utils.dart';
 
 void main() {
-  Client networkClient = Client.getInstance(http.Client());
-
   String loginAPIURL = "${SuperTokensTestUtils.testAPIBase}login";
   String refreshTokenUrl = "${SuperTokensTestUtils.testAPIBase}refresh";
   String userInfoAPIURL = "${SuperTokensTestUtils.testAPIBase}userInfo";
@@ -53,7 +52,6 @@ void main() {
   }
 
   Future<void> _setUp() async {
-    networkClient.setInnerClient(http.Client());
     WidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     SuperTokens.isInitCalled = false;
@@ -95,13 +93,8 @@ void main() {
     await startST(validity: 5);
 
     try {
-      SuperTokens.initialise(
-          refreshTokenEndpoint: refreshTokenUrl,
-          sessionExpiryStatusCode: sessionExpiryCode);
-
-      SuperTokens.initialise(
-          refreshTokenEndpoint: refreshTokenUrl,
-          sessionExpiryStatusCode: sessionExpiryCode);
+      SuperTokens.init(apiDomain: "");
+      SuperTokens.init(apiDomain: "");
     } catch (e) {
       fail("Calling initialise more than once failed");
     }
@@ -114,9 +107,7 @@ void main() {
     await Future.delayed(Duration(seconds: 1));
 
     try {
-      SuperTokens.initialise(
-          refreshTokenEndpoint: refreshTokenUrl,
-          sessionExpiryStatusCode: sessionExpiryCode);
+      SuperTokens.init(apiDomain: "");
     } catch (e) {
       fail("Calling initialise more than once failed");
     }
@@ -132,7 +123,7 @@ void main() {
       "Test that the refresh endpoint gets set correctly when using a URL with no path",
       () {
     try {
-      SuperTokens.initialise(refreshTokenEndpoint: "https://api.example.com");
+      SuperTokens.init(refreshTokenEndpoint: "https://api.example.com");
     } catch (e) {
       fail("SuperTokens.initialise threw an error");
     }
@@ -144,7 +135,7 @@ void main() {
       "Test that the refresh endpoint gets set correctly when using a URL with empty path",
       () {
     try {
-      SuperTokens.initialise(refreshTokenEndpoint: "https://api.example.com/");
+      SuperTokens.init(refreshTokenEndpoint: "https://api.example.com/");
     } catch (e) {
       fail("SuperTokens.initialise threw an error");
     }
@@ -156,7 +147,7 @@ void main() {
       "Test that the refresh endpoint gets set correctly when using a URL with a valid path",
       () {
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
           refreshTokenEndpoint: "https://api.example.com/other/url");
     } catch (e) {
       fail("SuperTokens.initialise threw an error");
@@ -171,7 +162,7 @@ void main() {
     await startST(validity: 3);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
           refreshTokenEndpoint: refreshTokenUrl,
           sessionExpiryStatusCode: sessionExpiryCode);
     } catch (e) {
@@ -199,7 +190,7 @@ void main() {
     await startST(validity: 3, refreshValidity: 2, disableAntiCSRF: true);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
           refreshTokenEndpoint: refreshTokenUrl,
           sessionExpiryStatusCode: sessionExpiryCode);
     } catch (e) {
@@ -243,7 +234,7 @@ void main() {
     await startST(validity: 3);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
         refreshAPICustomHeaders: {
@@ -298,7 +289,7 @@ void main() {
     await startST(validity: 10);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -352,7 +343,7 @@ void main() {
     await startST(validity: 10);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -410,7 +401,7 @@ void main() {
       () async {
     await startST(validity: 3);
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -447,7 +438,7 @@ void main() {
       () async {
     await startST(validity: 3);
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -487,7 +478,7 @@ void main() {
     int threadCount = 50;
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -534,7 +525,7 @@ void main() {
     await startST(validity: 10);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -588,7 +579,7 @@ void main() {
     await startST(validity: 1);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -628,7 +619,7 @@ void main() {
     await startST(validity: 1);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -655,7 +646,7 @@ void main() {
     await startST(validity: 1);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -708,7 +699,7 @@ void main() {
     await startST(validity: 1);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );
@@ -764,7 +755,7 @@ void main() {
     await startST(validity: 1);
 
     try {
-      SuperTokens.initialise(
+      SuperTokens.init(
         refreshTokenEndpoint: refreshTokenUrl,
         sessionExpiryStatusCode: sessionExpiryCode,
       );

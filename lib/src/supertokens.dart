@@ -124,10 +124,11 @@ class SuperTokens {
     bool shouldRetry = false;
     Exception? exception;
 
-    dynamic resp = Client.onUnauthorisedResponse(preRequestIdRefreshToken);
+    dynamic resp =
+        await Client.onUnauthorisedResponse(preRequestIdRefreshToken);
     if (resp is UnauthorisedResponse) {
       if (resp.status == UnauthorisedStatus.API_ERROR) {
-        exception = resp.exception as SuperTokensException;
+        exception = resp.error as SuperTokensException;
       } else {
         shouldRetry = resp.status == UnauthorisedStatus.RETRY;
       }

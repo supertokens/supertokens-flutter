@@ -118,14 +118,16 @@ class Client extends http.BaseClient {
             send(request);
           } else {
             // TODO: handle exception
-            if (IdRefreshToken.getToken() == null) {
+            if (await IdRefreshToken.getToken() == null) {
               AntiCSRF.removeToken();
               FrontToken.removeToken();
             }
             if (shouldRetry.exception != null) {
               var respObject = await http.Response.fromStream(response);
               var data = respObject.body;
-            }
+              throw SuperTokensException(shouldRetry.exception!.message);
+            } else
+              return response;
           }
         } else {
           String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
@@ -147,8 +149,6 @@ class Client extends http.BaseClient {
       }
     }
   }
-
-  // static resolveToUser(String data)
 
   static Future onUnauthorisedResponse(String? preRequestIdRefresh) async {
     try {
@@ -222,7 +222,9 @@ class Client extends http.BaseClient {
       SuperTokens.config.eventHandler(Eventype.REFRESH_SESSION);
       return UnauthorisedResponse(status: UnauthorisedStatus.RETRY);
     } catch (e) {
-      return UnauthorisedResponse(status: UnauthorisedStatus.API_ERROR);
+      return UnauthorisedResponse(
+          status: UnauthorisedStatus.API_ERROR,
+          error: SuperTokensException("Some unknown error occured"));
     } finally {
       _refreshAPILock.release();
     }
