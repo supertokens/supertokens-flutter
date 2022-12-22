@@ -29,7 +29,6 @@ class SuperTokensCookieStore {
           cookieStrings.map((e) => Cookie.fromSetCookieValue(e)).toList();
       _allCookies?[uri] = cookies;
     });
-    print('hi');
   }
 
   /// Saves the provided cookie list against the provided Uri.

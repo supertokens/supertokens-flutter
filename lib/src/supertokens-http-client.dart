@@ -171,11 +171,21 @@ class Client extends http.BaseClient {
       }
       refreshReq.headers['rid'] = SuperTokens.rid;
       refreshReq.headers['fdi-version'] = Version.supported_fdi.join(',');
+      // Add cookies to request headers
+      String? newCookiesToAdd = await Client._cookieStore
+          ?.getCookieHeaderStringForRequest(refreshUrl);
+      refreshReq.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
       refreshReq =
           SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
       var resp = await refreshReq.send();
       http.Response response = await http.Response.fromStream(resp);
       Map<String, String> headerFeilds = response.headers;
+
+      // Save cookies from the response
+      String? setCookieFromResponse =
+          response.headers[HttpHeaders.setCookieHeader];
+      await Client._cookieStore
+          ?.saveFromSetCookieHeader(refreshReq.url, setCookieFromResponse);
       bool removeIdRefreshToken = true;
       bool removeFrontToken = true;
       if (headerFeilds.containsKey(idRefreshHeaderKey)) {
