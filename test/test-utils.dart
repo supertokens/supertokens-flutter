@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class SuperTokensTestUtils {
-  static String testAPIBase = "http://127.0.0.1:8080/";
+  static String testAPIBase = "http://127.0.0.1:3001/";
   static http.Client nonInterceptedClient = http.Client();
 
   static Future<void> beforeEachTest() async {
