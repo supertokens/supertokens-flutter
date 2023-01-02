@@ -93,9 +93,7 @@ class Client extends http.BaseClient {
               response.headers[HttpHeaders.setCookieHeader];
           await Client._cookieStore
               ?.saveFromSetCookieHeader(request.url, setCookieFromResponse);
-          // response.headers.keys.forEach((element) {
-          //   print('$element: ${response.headers[element]}');
-          // });
+
           String? idRefreshTokenFromResponse =
               response.headers[idRefreshHeaderKey];
           if (idRefreshTokenFromResponse != null) {
