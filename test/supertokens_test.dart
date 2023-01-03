@@ -90,7 +90,7 @@ void main() {
 
   test("Test that multiple calls to SuperTokens.initialise work as expected",
       () async {
-    // await startST(validity: 5);
+    await startST(validity: 5);
 
     try {
       SuperTokens.init(apiDomain: SuperTokensTestUtils.testAPIBase);
@@ -119,34 +119,34 @@ void main() {
     }
   });
 
-  // test(
-  //     "Test that the refresh endpoint gets set correctly when using a URL with no path",
-  //     () {
-  //   try {
-  //     SuperTokens.init(apiDomain: "http://localhost:3001");
-  //   } catch (e) {
-  //     fail("SuperTokens.initialise threw an error");
-  //   }
-  //   expect(
-  //       SuperTokens.refreshTokenUrl, "http://localhost:3001/session/refresh");
-  // });
+  test(
+      "Test that the refresh endpoint gets set correctly when using a URL with no path",
+      () {
+    try {
+      SuperTokens.init(apiDomain: "http://localhost:3001");
+    } catch (e) {
+      fail("SuperTokens.initialise threw an error");
+    }
+    expect(
+        SuperTokens.refreshTokenUrl, "http://localhost:3001/session/refresh");
+  });
 
-  // test(
-  //     "Test that the refresh endpoint gets set correctly when using a URL with empty path",
-  //     () {
-  //   try {
-  //     SuperTokens.init(apiDomain: "http://localhost:3001/");
-  //   } catch (e) {
-  //     fail("SuperTokens.initialise threw an error");
-  //   }
-  //   expect(
-  //       SuperTokens.refreshTokenUrl, "http://localhost:3001/session/refresh");
-  // });
+  test(
+      "Test that the refresh endpoint gets set correctly when using a URL with empty path",
+      () {
+    try {
+      SuperTokens.init(apiDomain: "http://localhost:3001/");
+    } catch (e) {
+      fail("SuperTokens.initialise threw an error");
+    }
+    expect(
+        SuperTokens.refreshTokenUrl, "http://localhost:3001/session/refresh");
+  });
 
   test(
       "Test that network requests without valid credentials throw session expired and do not trigger a call to the refresh endpoint",
       () async {
-    // await startST(validity: 3);
+    await startST(validity: 3);
 
     try {
       SuperTokens.init(apiDomain: "http://localhost:3001/");
