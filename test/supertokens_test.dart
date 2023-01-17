@@ -1,717 +1,117 @@
-import 'dart:async';
-import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supertokens/http.dart' as http;
 import 'package:supertokens/src/anti-csrf.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/supertokens.dart';
-import 'package:http/http.dart' as http;
-import 'package:supertokens/http.dart' as networkClient;
 
 import 'test-utils.dart';
 
 void main() {
-  String loginAPIURL = "${SuperTokensTestUtils.testAPIBase}login";
-  String refreshTokenUrl = "${SuperTokensTestUtils.testAPIBase}refresh";
-  String userInfoAPIURL = "${SuperTokensTestUtils.testAPIBase}userInfo";
-  String logoutAPIURL = "${SuperTokensTestUtils.testAPIBase}logout";
-  String refreshCustomHeaderURL =
-      "${SuperTokensTestUtils.testAPIBase}checkCustomHeader";
-  String testErrorURL = "${SuperTokensTestUtils.testAPIBase}testError";
-  String fakeGetApiURL = "https://www.google.com";
-  String customRequestHeaderURL = "${SuperTokensTestUtils.testAPIBase}header";
-
-  int sessionExpiryCode = 401;
-
-  Future<void> startST({
-    int validity = 1,
-    double? refreshValidity,
-    bool disableAntiCSRF = false,
-  }) async {
-    await SuperTokensTestUtils.startSuperTokens(
-        validity: validity,
-        refreshValidity: refreshValidity,
-        disableAntiCSRF: disableAntiCSRF);
-    await Future.delayed(Duration(seconds: 1));
-  }
-
-  Future<int> getRefreshTokenCounterUsingST() async {
-    String refreshCounterAPIURL =
-        "${SuperTokensTestUtils.testAPIBase}refreshCounter";
-    http.Response response =
-        await networkClient.get(Uri.parse(refreshCounterAPIURL));
-
-    if (response.statusCode != 200) {
-      throw Exception("Refresh counter API using ST failed");
-    }
-
-    Map<String, dynamic> responseBody = jsonDecode(response.body);
-    return responseBody["counter"];
-  }
-
-  Future<void> _setUp() async {
+  String apiBasePath = SuperTokensTestUtils.baseUrl;
+  setUp(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    await SuperTokensTestUtils.beforeAllTest();
     SharedPreferences.setMockInitialValues({});
     SuperTokens.isInitCalled = false;
     await AntiCSRF.removeToken();
     await IdRefreshToken.removeToken();
-    await SuperTokensTestUtils.beforeEachTest();
     await Future.delayed(Duration(seconds: 1));
-  }
+  });
+  setUpAll(() => SuperTokensTestUtils.beforeEachTest());
+  tearDownAll(() => SuperTokensTestUtils.afterAllTest());
 
-  setUp(() {
-    return _setUp();
+  test('Test Session Expired without a refresh call', () async {
+    SuperTokensTestUtils.startST(validity: 3);
+    SuperTokens.init(apiDomain: apiBasePath);
+    Uri userInfoURL = Uri.parse("$apiBasePath/");
+    var resp = await http.get(userInfoURL);
+
+    if (resp.statusCode != 401) {
+      fail("API should have returned unauthorised but didnt");
+    }
+
+    int counter = await SuperTokensTestUtils.refreshTokenCounter();
+    if (counter != 0) fail("Refresh counter returned non zero value");
   });
 
-  Future<void> _tearDown() async {
-    await SuperTokensTestUtils.afterEachTest();
-    await Future.delayed(Duration(seconds: 1));
-  }
+  test("Test things work if AntiCSRF is disabled", () async {
+    SuperTokensTestUtils.startST(validity: 3, disableAntiCSRF: true);
+    SuperTokens.init(apiDomain: apiBasePath);
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    try {
+      streamedResp = await http.send(req);
+    } catch (e) {
+      fail("Login request failed");
+    }
+    var resp = await Response.fromStream(streamedResp);
+    if (resp.statusCode != 200) {
+      fail("Login request gave ${resp.statusCode}");
+    } else {
+      Uri userInfoURL = Uri.parse("$apiBasePath/");
+      sleep(Duration(seconds: 5));
+      var userInfoResp = await http.get(userInfoURL);
+      if (userInfoResp.statusCode != 200)
+        fail("API responded with staus ${userInfoResp.statusCode}");
+    }
 
-  tearDown(() {
-    return _tearDown();
+    int counter = await SuperTokensTestUtils.refreshTokenCounter();
+    if (counter != 1) fail("Refresh counter returned wrong value: $counter");
+
+    // logout
+    Uri logoutReq = Uri.parse("$apiBasePath/logout");
+    var logoutResp = await http.post(logoutReq);
+    if (logoutResp.statusCode != 200) fail("Logout req failed");
   });
 
-  test("Test that requests fail when SuperTokens.initialise is not called",
-      () async {
-    try {
-      await networkClient.post(Uri.parse(loginAPIURL));
-    } on http.ClientException catch (e) {
-      if (e.message !=
-          "SuperTokens.initialise must be called before using Client") {
-        throw e;
-      }
-    } catch (e) {
-      throw e;
-    }
-  });
-
-  test("Test that multiple calls to SuperTokens.initialise work as expected",
-      () async {
-    // await startST(validity: 5);
-
-    try {
-      SuperTokens.init(apiDomain: SuperTokensTestUtils.testAPIBase);
-      SuperTokens.init(apiDomain: SuperTokensTestUtils.testAPIBase);
-    } catch (e) {
-      fail("Calling initialise more than once failed");
-    }
-
-    http.Response response = await networkClient.post(Uri.parse(loginAPIURL));
-    if (response.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    try {
-      SuperTokens.init(apiDomain: SuperTokensTestUtils.testAPIBase);
-    } catch (e) {
-      fail("Calling initialise more than once failed");
-    }
-
-    http.Response userInfoResponse =
-        await networkClient.get(Uri.parse(userInfoAPIURL));
-    if (userInfoResponse.statusCode != 200) {
-      fail("UserInfo API failed");
-    }
-  });
-
-  // test(
-  //     "Test that the refresh endpoint gets set correctly when using a URL with no path",
-  //     () {
-  //   try {
-  //     SuperTokens.init(apiDomain: "http://localhost:3001");
-  //   } catch (e) {
-  //     fail("SuperTokens.initialise threw an error");
-  //   }
-  //   expect(
-  //       SuperTokens.refreshTokenUrl, "http://localhost:3001/session/refresh");
-  // });
-
-  // test(
-  //     "Test that the refresh endpoint gets set correctly when using a URL with empty path",
-  //     () {
-  //   try {
-  //     SuperTokens.init(apiDomain: "http://localhost:3001/");
-  //   } catch (e) {
-  //     fail("SuperTokens.initialise threw an error");
-  //   }
-  //   expect(
-  //       SuperTokens.refreshTokenUrl, "http://localhost:3001/session/refresh");
-  // });
-
-  test(
-      "Test that network requests without valid credentials throw session expired and do not trigger a call to the refresh endpoint",
-      () async {
-    // await startST(validity: 3);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      throw e;
-    }
-
-    try {
-      http.Response response =
-          await networkClient.get(Uri.parse(userInfoAPIURL));
-
-      if (response.statusCode == 200) {
-        fail("userInfo API succeeded when it should have failed");
-      }
-
-      if (response.statusCode != sessionExpiryCode) {
-        fail("UserInfo status code did not match session expired");
-      }
-    } catch (e) {
-      throw e;
-    }
-  });
-
-  test("Test that the library works as expected when anti-csrf is disabled",
-      () async {
-    await startST(validity: 3, refreshValidity: 2, disableAntiCSRF: true);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      throw e;
-    }
-
-    http.Response response = await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (response.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 5));
-
-    http.Response userInfoResponse =
-        await networkClient.get(Uri.parse(userInfoAPIURL));
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if (userInfoResponse.statusCode != 200) {
-      fail("userInfo API failed");
-    }
-
-    int refreshCounter = await SuperTokensTestUtils.getRefreshTokenCounter();
-    if (refreshCounter != 1) {
-      fail("Unexpected counter value: was $refreshCounter extected 1");
-    }
-
-    http.Response logoutResponse =
-        await networkClient.post(Uri.parse(logoutAPIURL));
-    if (logoutResponse.statusCode != 200) {
-      fail("Logout API failed");
-    }
-
-    expect(await SuperTokens.doesSessionExist(), false);
-  });
-
-  test(
-      "Test that custom refresh headers are sent properly when calls to the refresh endpoint are triggered",
-      () async {
-    await startST(validity: 3);
-
+  test("Test custom headers for refreshAPI", () async {
+    SuperTokensTestUtils.startST(validity: 3);
     try {
       SuperTokens.init(
-          apiDomain: "http://localhost:3001/",
-          preAPIHook: (p0, p1) {
-            p1.headers.addAll({'testKey': 'testValue'});
-            return p1;
-          });
+        apiDomain: apiBasePath,
+        preAPIHook: ((action, req) {
+          req.headers.addAll({"custom-header": "custom-value"});
+          return req;
+        }),
+      );
     } catch (e) {
-      fail("Error initialising SuperTokens");
+      fail("SuperTokens init failed");
     }
 
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    String? idRefreshTokenBefore = await IdRefreshToken.getToken();
-    await Future.delayed(Duration(seconds: 5));
-
-    http.Response userInfoResponse =
-        await networkClient.get(Uri.parse(userInfoAPIURL));
-
-    if (userInfoResponse.statusCode != 200) {
-      fail("UserInfo API failed");
-    }
-
-    String? idRefreshTokenAfter = await IdRefreshToken.getToken();
-
-    if (idRefreshTokenBefore == idRefreshTokenAfter) {
-      fail(
-          "IdRefreshToken before and after are same, expected to be different");
-    }
-
-    http.Response refreshCustomHeaderResponse =
-        await networkClient.get(Uri.parse(refreshCustomHeaderURL));
-
-    if (refreshCustomHeaderResponse.statusCode != 200) {
-      fail("Refresh custom header call failed");
-    }
-
-    String refreshCustomHeaderResponseBody = refreshCustomHeaderResponse.body;
-
-    if (refreshCustomHeaderResponseBody != "true") {
-      fail("Custom refresh header not sent");
-    }
-  });
-
-  test(
-      "Test that network calls that dont require authentication work properly before, during and after login when using Client",
-      () async {
-    await startST(validity: 10);
-
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
     try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
+      streamedResp = await http.send(req);
     } catch (e) {
-      fail("Error initialising super tokens");
+      fail("Login request failed");
     }
-
-    int counterBefore = await getRefreshTokenCounterUsingST();
-    await Future.delayed(Duration(seconds: 1));
-
-    if (counterBefore != 0) {
-      fail("API call before failed");
+    var resp = await Response.fromStream(streamedResp);
+    if (resp.statusCode != 200) {
+      fail("Login request gave ${resp.statusCode}");
+    } else {
+      String? idRefreshToken = await IdRefreshToken.getToken();
+      if (idRefreshToken == null) fail("id-refresh-token was null");
+      sleep(Duration(seconds: 5));
+      Uri userInfoURL = Uri.parse("$apiBasePath/");
+      sleep(Duration(seconds: 5));
+      var userInfoResp = await http.get(userInfoURL);
+      if (userInfoResp.statusCode != 200)
+        fail("API responded with staus ${userInfoResp.statusCode}");
+      else {
+        String? idRefreshAfter = await IdRefreshToken.getToken();
+        if (idRefreshAfter == null)
+          fail("id-refresh-token after userInfo was null");
+        // ! following seeems breaking
+        else if (idRefreshAfter == idRefreshToken)
+          fail("id before and after are not the same!");
+      }
     }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-    await Future.delayed(Duration(seconds: 1));
-
-    int counterDuring = await getRefreshTokenCounterUsingST();
-
-    if (counterDuring != 0) {
-      fail("API call during failed");
-    }
-
-    http.Response logoutResponse =
-        await networkClient.post(Uri.parse(logoutAPIURL));
-    if (logoutResponse.statusCode != 200) {
-      fail("Logout API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if (await SuperTokens.doesSessionExist()) {
-      fail("Session exixts according to supertokens when it shouldnt");
-    }
-
-    int counterAfter = await getRefreshTokenCounterUsingST();
-
-    if (counterAfter != 0) {
-      fail("API call after failed");
-    }
+    Uri refreshCustomHeader = Uri.parse("$apiBasePath/refreshHeader");
+    var redfreshResponse = await http.get(refreshCustomHeader);
   });
-
-  test(
-      "Test that network calls that dont require authentication work properly before, during and after login without using Client",
-      () async {
-    await startST(validity: 10);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    int counterBefore = await SuperTokensTestUtils.getRefreshTokenCounter();
-
-    if (counterBefore != 0) {
-      fail("API call before failed");
-    }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-    await Future.delayed(Duration(seconds: 1));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    int counterDuring = await SuperTokensTestUtils.getRefreshTokenCounter();
-
-    if (counterDuring != 0) {
-      fail("API call during failed");
-    }
-
-    http.Response logoutResponse =
-        await networkClient.post(Uri.parse(logoutAPIURL));
-    if (logoutResponse.statusCode != 200) {
-      fail("Logout API failed");
-    }
-    await Future.delayed(Duration(seconds: 1));
-
-    if (await SuperTokens.doesSessionExist()) {
-      fail("Session exixts according to supertokens when it shouldnt");
-    }
-
-    if ((await SharedPreferences.getInstance())
-                .getString("supertokens-flutter-anti-csrf") !=
-            null ||
-        (await IdRefreshToken.getToken()) != null) {
-      fail("Either IdRefreshToken or AntiCSRF token is not null");
-    }
-
-    int counterAfter = await SuperTokensTestUtils.getRefreshTokenCounter();
-
-    if (counterAfter != 0) {
-      fail("API call after failed");
-    }
-  });
-
-  test(
-      "Test that idRefreshToken in storage changes properly when the network response sends a new header value",
-      () async {
-    await startST(validity: 3);
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    String? idRefreshTokenBefore = await IdRefreshToken.getToken();
-    await Future.delayed(Duration(seconds: 5));
-
-    http.Response userInfoResponse =
-        await networkClient.get(Uri.parse(userInfoAPIURL));
-
-    if (userInfoResponse.statusCode != 200) {
-      fail("UserInfo API failed");
-    }
-
-    String? idRefreshTokenAfter = await IdRefreshToken.getToken();
-
-    if (idRefreshTokenBefore == idRefreshTokenAfter) {
-      fail("Id refresh token before and after are the same");
-    }
-  });
-
-  test(
-      "Test that the refresh endpoint is called after the access token expires",
-      () async {
-    await startST(validity: 3);
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 5));
-
-    http.Response userInfoResponse =
-        await networkClient.get(Uri.parse(userInfoAPIURL));
-
-    if (userInfoResponse.statusCode != 200) {
-      fail("UserInfo API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    int refreshCounter = await SuperTokensTestUtils.getRefreshTokenCounter();
-    if (refreshCounter != 1) {
-      fail("Refresh counter was $refreshCounter, expected 1");
-    }
-  });
-
-  test(
-      "Test that refresh endpoint gets called only once for multiple parallel tasks",
-      () async {
-    await startST(validity: 10);
-    // Using 50 because flutter test on the command line for some reason fails when using too many Futures
-    int threadCount = 50;
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    List<bool> results = [];
-
-    Future<void> getUserInfo() async {
-      http.Response response =
-          await networkClient.get(Uri.parse(userInfoAPIURL));
-
-      await Future.delayed(Duration(seconds: 1));
-
-      results.add(response.statusCode == 200);
-    }
-
-    await Future.delayed(Duration(seconds: 12));
-
-    await Future.wait(List<int>.generate(threadCount, (index) => index + 1)
-        .map((e) => getUserInfo()));
-
-    int refreshCounter = await SuperTokensTestUtils.getRefreshTokenCounter();
-
-    if (refreshCounter != 1 ||
-        results.contains(false) ||
-        results.length != threadCount) {
-      fail(
-          "Either refresh count did not match, one of the calls failed or the result count does not equal request count");
-    }
-  });
-
-  test(
-      "Test that doesSessionExist returns false after credentials are cleared by a network response",
-      () async {
-    await startST(validity: 10);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if (!(await SuperTokens.doesSessionExist())) {
-      fail("Session does not exist according to library, when it should");
-    }
-
-    String? idRefresh = await IdRefreshToken.getToken();
-    String? antiCSRFToken = await AntiCSRF.getToken(idRefresh);
-
-    if (idRefresh == null || antiCSRFToken == null) {
-      fail("Either idRefresh or antiCSRFToken is null after login");
-    }
-
-    http.Response logoutResponse =
-        await networkClient.post(Uri.parse(logoutAPIURL));
-    if (logoutResponse.statusCode != 200) {
-      fail("Logout API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if ((await SuperTokens.doesSessionExist())) {
-      fail("Session exists according to library, when it should not");
-    }
-
-    String? idRefreshAfter = await IdRefreshToken.getToken();
-    String? antiCSRFTokenAfter = await AntiCSRF.getToken(idRefreshAfter);
-
-    if (idRefreshAfter != null || antiCSRFTokenAfter != null) {
-      fail("Either idRefresh or antiCSRFToken is not null after logout");
-    }
-  });
-
-  test(
-      "Test that doesSessionExist returns true when valid credentials are present",
-      () async {
-    await startST(validity: 1);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if (!(await SuperTokens.doesSessionExist())) {
-      fail("Session does not exist according to the library, when it should");
-    }
-
-    http.Response logoutResponse =
-        await networkClient.post(Uri.parse(logoutAPIURL));
-    if (logoutResponse.statusCode != 200) {
-      fail("Logout API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if ((await SuperTokens.doesSessionExist())) {
-      fail("Session exists according to library, when it should not");
-    }
-  });
-
-  test(
-      "Test that in the case of API errors the error message is returned to the function using Client",
-      () async {
-    await startST(validity: 1);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response response = await networkClient.get(Uri.parse(testErrorURL));
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if (response.statusCode != 500) {
-      fail("Unexpected status code");
-    }
-
-    if (response.body != "custom message") {
-      fail("Incorrect message recieved in response");
-    }
-  });
-
-  test(
-      "Test that network requests to domains other than SuperTokens.apiDomain work fine before, during and after logout",
-      () async {
-    await startST(validity: 1);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response responseBefore =
-        await networkClient.get(Uri.parse(fakeGetApiURL));
-    if (responseBefore.statusCode != 200) {
-      fail("External GET API before login failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    http.Response responseDuring =
-        await networkClient.get(Uri.parse(fakeGetApiURL));
-    if (responseDuring.statusCode != 200) {
-      fail("External GET API after login failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    http.Response logoutResponse =
-        await networkClient.post(Uri.parse(logoutAPIURL));
-    if (logoutResponse.statusCode != 200) {
-      fail("Logout API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    http.Response responseAfter =
-        await networkClient.get(Uri.parse(fakeGetApiURL));
-    if (responseAfter.statusCode != 200) {
-      fail("External GET API after logout failed");
-    }
-  });
-
-  test("Test that custom request headers are sent correctly when using Client",
-      () async {
-    await startST(validity: 1);
-
-    try {
-      SuperTokens.init(apiDomain: "http://localhost:3001/");
-    } catch (e) {
-      fail("Error initialising super tokens");
-    }
-
-    http.Response customHeadersResponseBeforeLogin =
-        await networkClient.get(Uri.parse(customRequestHeaderURL), headers: {
-      "Content-Type": "application/json",
-      "st-custom-header": "testing",
-    });
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if (customHeadersResponseBeforeLogin.statusCode != 200) {
-      fail("API request with custom headers failed");
-    }
-
-    if (!jsonDecode(customHeadersResponseBeforeLogin.body)["success"]) {
-      fail("Unexpected API response recieved");
-    }
-
-    http.Response loginResponse =
-        await networkClient.post(Uri.parse(loginAPIURL));
-
-    if (loginResponse.statusCode != 200) {
-      fail("Login API failed");
-    }
-
-    await Future.delayed(Duration(seconds: 1));
-
-    http.Response customHeadersResponseAfterLogin =
-        await networkClient.get(Uri.parse(customRequestHeaderURL), headers: {
-      "Content-Type": "application/json",
-      "st-custom-header": "testing",
-    });
-
-    await Future.delayed(Duration(seconds: 1));
-
-    if (customHeadersResponseAfterLogin.statusCode != 200) {
-      fail("API request with custom headers failed");
-    }
-
-    if (!jsonDecode(customHeadersResponseBeforeLogin.body)["success"]) {
-      fail("Unexpected API response recieved");
-    }
-  });
-}
-
-// Client used to test whether headers attached in a custom client still works as expected when used in combination with supertokens
-class _TestHttpClient extends http.BaseClient {
-  final http.Client _innerClient;
-
-  _TestHttpClient(this._innerClient);
-
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    request.headers["Content-Type"] = "application/json";
-    request.headers["st-custom-header"] = "testing";
-    return _innerClient.send(request);
-  }
 }

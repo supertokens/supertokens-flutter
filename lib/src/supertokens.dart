@@ -1,10 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-
-import 'package:dio/dio.dart';
-import 'package:supertokens/src/anti-csrf.dart';
-import 'package:supertokens/src/constants.dart';
-import 'package:supertokens/src/cookie-store.dart';
 import 'package:supertokens/src/errors.dart';
 import 'package:supertokens/src/front-token.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
@@ -139,7 +133,7 @@ class SuperTokens {
       }
     }
     if (exception != null) {
-      throw exception!;
+      throw exception;
     }
     return shouldRetry;
   }
@@ -167,45 +161,5 @@ class SuperTokens {
         throw SuperTokensException("Could not refresh session");
     }
     return userPayload;
-  }
-
-  static dynamic onRequest(BaseOptions options) async {
-    SuperTokensCookieStore cookieStore = SuperTokensCookieStore();
-
-    if (!SuperTokens.isInitCalled) {
-      throw SuperTokensException(
-          "SuperTokens.initialise must be called before using Client");
-    }
-
-    if (SuperTokensUtils.getApiDomain(options.baseUrl) !=
-        SuperTokens.config.apiDomain) {
-      return options;
-    }
-
-    if (SuperTokensUtils.getApiDomain(options.baseUrl) ==
-        SuperTokens.refreshTokenUrl) {
-      return options;
-    }
-
-    String? preRequestIdRefreshToken = await IdRefreshToken.getToken();
-    String? antiCSRFToken = await AntiCSRF.getToken(preRequestIdRefreshToken);
-
-    if (antiCSRFToken != null) {
-      options.headers[antiCSRFHeaderKey] = antiCSRFToken;
-    }
-
-    String? newCookiesToAdd = await cookieStore
-        .getCookieHeaderStringForRequest(Uri.parse(options.baseUrl));
-    String? existingCookieHeader = options.headers[HttpHeaders.cookieHeader];
-
-    // If the request already has a "cookie" header, combine it with persistent cookies
-    if (existingCookieHeader != null) {
-      options.headers[HttpHeaders.cookieHeader] =
-          "$existingCookieHeader;${newCookiesToAdd ?? ""}";
-    } else {
-      options.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
-    }
-
-    return options;
   }
 }
