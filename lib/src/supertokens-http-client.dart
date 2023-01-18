@@ -280,3 +280,6 @@ Future<http.Response> delete(Uri url,
         {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
     _innerSTClient.delete(url,
         headers: headers, body: body, encoding: encoding);
+
+Future<http.StreamedResponse> send(http.BaseRequest req) =>
+    _innerSTClient.send(req);

@@ -1,60 +1,69 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+import "package:http/http.dart" as http;
+import 'package:supertokens/src/anti-csrf.dart';
+import 'package:supertokens/src/front-token.dart';
+import 'package:supertokens/src/id-refresh-token.dart';
+import 'package:supertokens/supertokens.dart';
 
 class SuperTokensTestUtils {
-  static String testAPIBase = "http://127.0.0.1:8080/";
-  static http.Client nonInterceptedClient = http.Client();
+  static String baseUrl = "http://localhost:8080";
+  static http.Client _internalClient = http.Client();
 
-  static Future<void> beforeEachTest() async {
-    String beforeEachAPIURL = "${testAPIBase}beforeeach";
-    await nonInterceptedClient.post(Uri.parse(beforeEachAPIURL));
+  static beforeAllTest() async {
+    String beforeAllTestAPIURL = "$baseUrl/test/tartServer";
+    await _internalClient.post(Uri.parse(beforeAllTestAPIURL));
   }
 
-  static Future<void> afterEachTest() async {
-    String afterAPIURL = "${testAPIBase}after";
-    await nonInterceptedClient.post(Uri.parse(afterAPIURL));
+  static void beforeEachTest() async {
+    String beforeEachAPIURL = "$baseUrl/beforeeach";
+    FrontToken.removeToken();
+    AntiCSRF.removeToken();
+    IdRefreshToken.removeToken();
+    SuperTokens.isInitCalled = false;
+    await _internalClient.post(Uri.parse(beforeEachAPIURL));
   }
 
-  static Future<void> startSuperTokens({
-    int validity = 1,
-    double? refreshValidity,
-    bool disableAntiCSRF = false,
-  }) async {
-    String startSTAPIURL = "${testAPIBase}startst";
-    String body = jsonEncode({
-      "accessTokenValidity": validity,
-    });
+  static afterAllTest() async {
+    String afterAllTestAPIURL = "$baseUrl/after";
+    String afterAllStopTestAPIURL = "$baseUrl/stop";
+    await _internalClient.post(Uri.parse(afterAllTestAPIURL));
+    await _internalClient.get(Uri.parse(afterAllStopTestAPIURL));
+  }
 
-    if (refreshValidity != null) {
-      body = jsonEncode({
-        "accessTokenValidity": validity,
-        "refreshTokenValidity": refreshValidity,
-        "disableAntiCSRF": disableAntiCSRF,
-      });
-    }
-
-    http.Response response = await nonInterceptedClient.post(
+  static void startST(
+      {required int validity, bool disableAntiCSRF = false}) async {
+    String startSTAPIURL = "$baseUrl/startst";
+    var body = jsonEncode(
+        {"accessTokenValidity": validity, "enableAntiCsrf": !disableAntiCSRF});
+    http.Response resp = await _internalClient.post(
       Uri.parse(startSTAPIURL),
       headers: {"Content-Type": "application/json; charset=utf-8"},
       body: body,
     );
-
-    if (response.statusCode != 200) {
+    if (resp.statusCode != 200) {
       throw Exception("Error starting supertokens");
     }
   }
 
-  static Future<int> getRefreshTokenCounter() async {
-    String refreshCounterAPIURL = "${testAPIBase}refreshCounter";
-    http.Response response =
-        await nonInterceptedClient.get(Uri.parse(refreshCounterAPIURL));
-
-    if (response.statusCode != 200) {
-      throw Exception("Error getting refresh token counter");
+  static Future<int> refreshTokenCounter() async {
+    String refreshTokenCountAPIURL = "$baseUrl/refreshAttemptedTime";
+    http.Response resp =
+        await _internalClient.get(Uri.parse(refreshTokenCountAPIURL));
+    if (resp.statusCode != 200) {
+      throw Exception("Getting count failed");
     }
+    var respBody = jsonDecode(resp.body);
+    return respBody['counter'] as int;
+  }
 
-    Map<String, dynamic> responseBody = jsonDecode(response.body);
-    return responseBody["counter"];
+  static http.Request getLoginRequest() {
+    var loginAPIURL = "$baseUrl/login";
+    var request = http.Request('POST', Uri.parse(loginAPIURL));
+    request.headers['Content-Type'] = "application/json; charset=utf-8";
+    var body = {"userId": "supertokens-ios-tests"};
+    var jsonBody = jsonEncode(body);
+    request.body = jsonBody;
+    return request;
   }
 }
