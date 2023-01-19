@@ -46,11 +46,8 @@ void main() {
   });
 
   test("Test things work if AntiCSRF is disabled", () async {
-    print("start test");
     await SuperTokensTestUtils.startST(validity: 3, disableAntiCSRF: true);
-    print("post startST");
     SuperTokens.init(apiDomain: apiBasePath);
-    print("post init");
     Request req = SuperTokensTestUtils.getLoginRequest();
     StreamedResponse streamedResp;
     try {
@@ -58,32 +55,23 @@ void main() {
     } catch (e) {
       fail("Login request failed");
     }
-    print("post login req");
     var resp = await Response.fromStream(streamedResp);
-    print("post converting to resp object for login");
     if (resp.statusCode != 200) {
       fail("Login request gave ${resp.statusCode}");
     } else {
       Uri userInfoURL = Uri.parse("$apiBasePath/");
       // sleep(Duration(seconds: 5));
       await Future.delayed(Duration(seconds: 5), () {});
-      print("pre userInfoURL::$userInfoURL");
       var userInfoResp = await http.get(userInfoURL);
-      print("post userInfoURL");
       if (userInfoResp.statusCode != 200)
         fail("API responded with staus ${userInfoResp.statusCode}");
-
-      print("pre count refresh");
       int counter = await SuperTokensTestUtils.refreshTokenCounter();
       if (counter != 1) fail("Refresh counter returned wrong value: $counter");
     }
-    print("post count refresh");
-    print("pre logout");
 
     // logout
     Uri logoutReq = Uri.parse("$apiBasePath/logout");
     var logoutResp = await http.post(logoutReq);
-    print("post logout");
     if (logoutResp.statusCode != 200) fail("Logout req failed");
   });
 
