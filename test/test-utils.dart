@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import "package:http/http.dart" as http;
 import 'package:supertokens/src/anti-csrf.dart';
@@ -6,12 +7,15 @@ import 'package:supertokens/src/front-token.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/supertokens.dart';
 
+class _MyHttpOverrides extends HttpOverrides {}
+
 class SuperTokensTestUtils {
   static String baseUrl = "http://localhost:8080";
   static http.Client _internalClient = http.Client();
 
   static beforeAllTest() async {
-    String beforeAllTestAPIURL = "$baseUrl/test/tartServer";
+    HttpOverrides.global = _MyHttpOverrides();
+    String beforeAllTestAPIURL = "$baseUrl/test/startServer";
     await _internalClient.post(Uri.parse(beforeAllTestAPIURL));
   }
 
@@ -25,9 +29,7 @@ class SuperTokensTestUtils {
   }
 
   static afterAllTest() async {
-    String afterAllTestAPIURL = "$baseUrl/after";
-    String afterAllStopTestAPIURL = "$baseUrl/stop";
-    await _internalClient.post(Uri.parse(afterAllTestAPIURL));
+    String afterAllStopTestAPIURL = "$baseUrl/stopst";
     await _internalClient.get(Uri.parse(afterAllStopTestAPIURL));
   }
 
