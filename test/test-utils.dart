@@ -31,7 +31,7 @@ class SuperTokensTestUtils {
     await _internalClient.get(Uri.parse(afterAllStopTestAPIURL));
   }
 
-  static void startST(
+  static Future startST(
       {required int validity, bool disableAntiCSRF = false}) async {
     String startSTAPIURL = "$baseUrl/startst";
     var body = jsonEncode(

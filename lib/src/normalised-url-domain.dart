@@ -12,6 +12,7 @@ class NormalisedURLDomain {
 
   static String normaliseUrlDomainOrThrowError(String input,
       {bool ignoreProtocal = false}) {
+    print("normalise domain :: $input");
     String trimmedInput = input.trim();
 
     if (trimmedInput.length == 0) return trimmedInput;
@@ -24,19 +25,14 @@ class NormalisedURLDomain {
       trimmedInput = trimmedInput.substring(1);
     }
 
-    if (trimmedInput.indexOf('.') == -1 ||
-        trimmedInput.startsWith("localhost")) {
-      trimmedInput = "https://" + trimmedInput;
-      try {
-        Uri uri = Uri.parse(trimmedInput);
-        return normaliseUrlDomainOrThrowError(trimmedInput,
-            ignoreProtocal: true);
-      } catch (e) {}
-    } else if (!trimmedInput.startsWith('https') &&
+    if ((trimmedInput.indexOf('.') == -1 ||
+            trimmedInput.startsWith("localhost")) &&
+        !trimmedInput.startsWith('https') &&
         !trimmedInput.startsWith('http')) {
       trimmedInput = "https://" + trimmedInput;
       try {
         Uri uri = Uri.parse(trimmedInput);
+        print("recursion 1 :: $trimmedInput");
         return normaliseUrlDomainOrThrowError(trimmedInput,
             ignoreProtocal: true);
       } catch (e) {}
