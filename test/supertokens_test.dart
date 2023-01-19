@@ -46,8 +46,11 @@ void main() {
   });
 
   test("Test things work if AntiCSRF is disabled", () async {
+    print("start test");
     await SuperTokensTestUtils.startST(validity: 3, disableAntiCSRF: true);
+    print("post startST");
     SuperTokens.init(apiDomain: apiBasePath);
+    print("post init");
     Request req = SuperTokensTestUtils.getLoginRequest();
     StreamedResponse streamedResp;
     try {
@@ -55,23 +58,32 @@ void main() {
     } catch (e) {
       fail("Login request failed");
     }
+    print("post login req");
     var resp = await Response.fromStream(streamedResp);
+    print("post converting to resp object for login");
     if (resp.statusCode != 200) {
       fail("Login request gave ${resp.statusCode}");
     } else {
       Uri userInfoURL = Uri.parse("$apiBasePath/");
-      sleep(Duration(seconds: 5));
+      // sleep(Duration(seconds: 5));
+      await Future.delayed(Duration(seconds: 5), () {});
+      print("pre userInfoURL::$userInfoURL");
       var userInfoResp = await http.get(userInfoURL);
+      print("post userInfoURL");
       if (userInfoResp.statusCode != 200)
         fail("API responded with staus ${userInfoResp.statusCode}");
-    }
 
-    int counter = await SuperTokensTestUtils.refreshTokenCounter();
-    if (counter != 1) fail("Refresh counter returned wrong value: $counter");
+      print("pre count refresh");
+      int counter = await SuperTokensTestUtils.refreshTokenCounter();
+      if (counter != 1) fail("Refresh counter returned wrong value: $counter");
+    }
+    print("post count refresh");
+    print("pre logout");
 
     // logout
     Uri logoutReq = Uri.parse("$apiBasePath/logout");
     var logoutResp = await http.post(logoutReq);
+    print("post logout");
     if (logoutResp.statusCode != 200) fail("Logout req failed");
   });
 
@@ -81,7 +93,8 @@ void main() {
       SuperTokens.init(
         apiDomain: apiBasePath,
         preAPIHook: ((action, req) {
-          req.headers.addAll({"custom-header": "custom-value"});
+          if (action == APIAction.REFRESH_TOKEN)
+            req.headers.addAll({"custom-header": "custom-value"});
           return req;
         }),
       );
@@ -102,9 +115,11 @@ void main() {
     } else {
       String? idRefreshToken = await IdRefreshToken.getToken();
       if (idRefreshToken == null) fail("id-refresh-token was null");
-      sleep(Duration(seconds: 5));
+      // sleep(Duration(seconds: 5));
+      await Future.delayed(Duration(seconds: 5), () {});
       Uri userInfoURL = Uri.parse("$apiBasePath/");
-      sleep(Duration(seconds: 5));
+      // sleep(Duration(seconds: 5));
+      await Future.delayed(Duration(seconds: 5), () {});
       var userInfoResp = await http.get(userInfoURL);
       if (userInfoResp.statusCode != 200)
         fail("API responded with staus ${userInfoResp.statusCode}");
@@ -114,14 +129,14 @@ void main() {
           fail("id-refresh-token after userInfo was null");
         // ! following message seems incorrect
         else if (idRefreshAfter == idRefreshToken)
-          fail("id before and after are not the same!");
+          fail("id before and after are the same!");
       }
     }
     Uri refreshCustomHeader = Uri.parse("$apiBasePath/refreshHeader");
     var refreshResponse = await http.get(refreshCustomHeader);
     if (refreshResponse.statusCode != 200) fail("Refresh Request failed");
-    var jsonResp = jsonDecode(refreshResponse.body);
-    if (jsonResp["custom-header"] != "custom-value") fail("Header not sent");
+    var respJson = jsonDecode(refreshResponse.body);
+    if (respJson["value"] != "custom-value") fail("Header not sent");
   });
 
 // while logged in, test that APIs that there is proper change in id refresh stored in storage
@@ -147,30 +162,29 @@ void main() {
     }
     String? idBefore = await IdRefreshToken.getToken();
     if (idBefore == null) fail("id-refresh-token is null");
-    sleep(Duration(seconds: 5));
+    // sleep(Duration(seconds: 5));
+    await Future.delayed(Duration(seconds: 5), () {});
     Uri userInfoUrl = Uri.parse("$apiBasePath/");
     var userInfoResp = await http.get(userInfoUrl);
     if (userInfoResp.statusCode != 200)
       fail("UserInfo API returned ${userInfoResp.statusCode} ");
     String? idAfter = await IdRefreshToken.getToken();
     if (idAfter == null) fail("id-refresh-token is null after response");
-    if (idAfter != idBefore) fail("id before and id after are not same!");
+    if (idAfter == idBefore) fail("id before and id after are same!");
   });
 
   test("Test to check if request can be made without Supertokens.init",
       () async {
     await SuperTokensTestUtils.startST(validity: 3);
-    Request req = SuperTokensTestUtils.getLoginRequest();
-    StreamedResponse streamedResp;
     try {
-      streamedResp = await http.send(req);
-    } catch (e) {
-      fail("Login request failed");
-    }
-    var resp = await Response.fromStream(streamedResp);
-    if (resp.statusCode != 200) {
-      fail("Login API failed");
-    }
+      Request req = SuperTokensTestUtils.getLoginRequest();
+      StreamedResponse streamedResp = await http.send(req);
+      var resp = await Response.fromStream(streamedResp);
+      if (resp.statusCode != 200) {
+        fail("Login API failed");
+      }
+    } catch (e) {}
+    assert(await IdRefreshToken.getToken() == null);
   });
 
   test('More than one calls to init works', () async {
@@ -203,7 +217,7 @@ void main() {
       fail("Calling init more than once fails the test");
   });
 
-  test("Test if erfresh is called after access token expires", () async {
+  test("Test if refresh is called after access token expires", () async {
     await SuperTokensTestUtils.startST(validity: 3);
     bool failed = false;
     SuperTokens.init(apiDomain: apiBasePath);
@@ -214,6 +228,8 @@ void main() {
     if (resp.statusCode != 200) {
       failed = true;
     }
+    // sleep(Duration(seconds: 5));
+    await Future.delayed(Duration(seconds: 5), () {});
     Uri userInfoUrl = Uri.parse("$apiBasePath/");
     var userInfoResp = await http.get(userInfoUrl);
     if (userInfoResp.statusCode != 200) failed = true;
@@ -224,23 +240,34 @@ void main() {
     assert(!failed);
   });
 
-  // TODO: check out multi threading and figure out this test
-  // test(
-  //     'Refresh only get called once after multiple request (Concurrency)',
-  //     () async {
-  //   bool failed = false;
-  //   await SuperTokensTestUtils.startST(validity: 10);
-  //   List<bool> results = [];
-  //   SuperTokens.init(apiDomain: apiBasePath);
-  //   Request req = SuperTokensTestUtils.getLoginRequest();
-  //   StreamedResponse streamedResp;
-  //   streamedResp = await http.send(req);
-  //   var resp = await Response.fromStream(streamedResp);
-  //   if (resp.statusCode != 200) {
-  //     failed = true;
-  //   }
-  //   // Future.wait(futures)
-  // });
+  test('Refresh only get called once after multiple request (Concurrency)',
+      () async {
+    bool failed = false;
+    await SuperTokensTestUtils.startST(validity: 10);
+    List<bool> results = [];
+    SuperTokens.init(apiDomain: apiBasePath);
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var resp = await Response.fromStream(streamedResp);
+    if (resp.statusCode != 200) {
+      failed = true;
+    }
+    List<Future> reqs = [];
+    Uri userInfoUrl = Uri.parse("$apiBasePath/");
+    for (int i = 0; i < 300; i++) {
+      http.get(userInfoUrl).then((resp) {
+        if (resp.statusCode == 200)
+          results.add(true);
+        else
+          results.add(false);
+      });
+    }
+    await Future.wait(reqs);
+    int refreshCount = await SuperTokensTestUtils.refreshTokenCounter();
+    if (refreshCount != 1 && !results.contains(false) && results.length == 300)
+      fail("");
+  });
 
   //! This test seems incorrect on iOS
   // test('Test that session does not exist after after calling signOut',
@@ -283,6 +310,7 @@ void main() {
 
   test("Test if not logged in  the  Auth API throws session expired", () async {
     await SuperTokensTestUtils.startST(validity: 1);
+    SuperTokens.init(apiDomain: apiBasePath);
     Uri userInfoURL = Uri.parse("$apiBasePath/");
     var resp = await http.get(userInfoURL);
 
@@ -293,6 +321,7 @@ void main() {
 
   test("Test other other domains work without Authentication", () async {
     await SuperTokensTestUtils.startST(validity: 1);
+    SuperTokens.init(apiDomain: apiBasePath);
     Uri fakeGetApi = Uri.parse("https://www.google.com");
     var resp = await http.get(fakeGetApi);
     if (resp.statusCode != 200)

@@ -12,7 +12,6 @@ class NormalisedURLDomain {
 
   static String normaliseUrlDomainOrThrowError(String input,
       {bool ignoreProtocal = false}) {
-    print("normalise domain :: $input");
     String trimmedInput = input.trim();
 
     if (trimmedInput.length == 0) return trimmedInput;
@@ -32,7 +31,6 @@ class NormalisedURLDomain {
       trimmedInput = "https://" + trimmedInput;
       try {
         Uri uri = Uri.parse(trimmedInput);
-        print("recursion 1 :: $trimmedInput");
         return normaliseUrlDomainOrThrowError(trimmedInput,
             ignoreProtocal: true);
       } catch (e) {}
