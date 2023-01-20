@@ -15,6 +15,7 @@ import 'package:supertokens/src/utilities.dart';
 class SuperTokensInterceptorWrapper extends Interceptor {
   ReadWriteMutex _refreshAPILock = ReadWriteMutex();
   final Dio client;
+  late dynamic userSetCookie;
 
   SuperTokensInterceptorWrapper({required this.client});
 
@@ -34,7 +35,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     if (Client.cookieStore == null) {
       Client.cookieStore = SuperTokensCookieStore();
     }
-
+    print(options.baseUrl);
     if (SuperTokensUtils.getApiDomain(options.baseUrl) !=
         SuperTokens.config.apiDomain) {
       super.onRequest(options, handler);
@@ -51,6 +52,8 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     if (antiCSRFToken != null) {
       options.headers[antiCSRFHeaderKey] = antiCSRFToken;
     }
+
+    userSetCookie = options.headers[HttpHeaders.cookieHeader];
 
     String? newCookiesToAdd = await Client.cookieStore
         ?.getCookieHeaderStringForRequest(Uri.parse(options.baseUrl));
@@ -104,6 +107,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
             await Client.onUnauthorisedResponse(preRequestIdRefreshToken);
         if (shouldRetry.status == UnauthorisedStatus.RETRY) {
           RequestOptions requestOptions = response.requestOptions;
+          requestOptions.headers[HttpHeaders.cookieHeader] = userSetCookie;
           Response<dynamic> req = await client.fetch(requestOptions);
           List<dynamic>? setCookieFromResponse =
               req.headers.map[HttpHeaders.setCookieHeader];

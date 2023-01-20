@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import "package:http/http.dart" as http;
 import 'package:supertokens/src/anti-csrf.dart';
 import 'package:supertokens/src/front-token.dart';
@@ -67,5 +68,17 @@ class SuperTokensTestUtils {
     var jsonBody = jsonEncode(body);
     request.body = jsonBody;
     return request;
+  }
+
+  static RequestOptions getLoginRequestDio() {
+    var loginAPIURL = "/login";
+    var reqOptions = RequestOptions(
+      baseUrl: baseUrl,
+      path: loginAPIURL,
+      method: 'POST',
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      data: {"userId": "supertokens-ios-tests"},
+    );
+    return reqOptions;
   }
 }
