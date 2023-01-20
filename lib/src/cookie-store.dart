@@ -78,7 +78,7 @@ class SuperTokensCookieStore {
   Future<Uri> _getCookieUri(Uri requestUri, Cookie cookie) async {
     Uri cookieUri = Uri.parse(
         // ignore: unnecessary_null_comparison
-        "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "/" : cookie.path}");
+        "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "" : cookie.path}");
 
     if (cookie.domain != null) {
       String domain = cookie.domain ?? "";

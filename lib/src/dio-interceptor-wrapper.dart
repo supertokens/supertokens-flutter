@@ -27,7 +27,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
           "SuperTokens.initialise must be called before using Client");
     }
 
-    if (!Utils.shouldDoInterceptions(options.baseUrl,
+    if (!Utils.shouldDoInterceptions(options.uri.toString(),
         SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
       super.onRequest(options, handler);
     }
@@ -35,13 +35,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     if (Client.cookieStore == null) {
       Client.cookieStore = SuperTokensCookieStore();
     }
-    print(options.baseUrl);
-    if (SuperTokensUtils.getApiDomain(options.baseUrl) !=
+
+    if (SuperTokensUtils.getApiDomain(options.uri.toString()) !=
         SuperTokens.config.apiDomain) {
       super.onRequest(options, handler);
     }
 
-    if (SuperTokensUtils.getApiDomain(options.baseUrl) ==
+    if (SuperTokensUtils.getApiDomain(options.uri.toString()) ==
         SuperTokens.refreshTokenUrl) {
       super.onRequest(options, handler);
     }
@@ -55,8 +55,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     userSetCookie = options.headers[HttpHeaders.cookieHeader];
 
+    String uriForCookieString = options.uri.toString();
+    if (!uriForCookieString.endsWith("/")) {
+      uriForCookieString += "/";
+    }
+
     String? newCookiesToAdd = await Client.cookieStore
-        ?.getCookieHeaderStringForRequest(Uri.parse(options.baseUrl));
+        ?.getCookieHeaderStringForRequest(Uri.parse(uriForCookieString));
     String? existingCookieHeader = options.headers[HttpHeaders.cookieHeader];
 
     // If the request already has a "cookie" header, combine it with persistent cookies
