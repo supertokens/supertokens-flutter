@@ -24,15 +24,9 @@ class NormalisedURLDomain {
       trimmedInput = trimmedInput.substring(1);
     }
 
-    if (trimmedInput.indexOf('.') == -1 ||
-        trimmedInput.startsWith("localhost")) {
-      trimmedInput = "https://" + trimmedInput;
-      try {
-        Uri uri = Uri.parse(trimmedInput);
-        return normaliseUrlDomainOrThrowError(trimmedInput,
-            ignoreProtocal: true);
-      } catch (e) {}
-    } else if (!trimmedInput.startsWith('https') &&
+    if ((trimmedInput.indexOf('.') == -1 ||
+            trimmedInput.startsWith("localhost")) &&
+        !trimmedInput.startsWith('https') &&
         !trimmedInput.startsWith('http')) {
       trimmedInput = "https://" + trimmedInput;
       try {
