@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:supertokens/src/errors.dart';
 import 'package:supertokens/src/front-token.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
@@ -134,7 +133,7 @@ class SuperTokens {
       }
     }
     if (exception != null) {
-      throw exception!;
+      throw exception;
     }
     return shouldRetry;
   }

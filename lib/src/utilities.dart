@@ -63,6 +63,68 @@ class Utils {
         r"^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
     return regex.hasMatch(input);
   }
+
+  static bool shouldDoInterceptions(
+      String toCheckURL, String apiDomain, String? cookieDomain) {
+    String _toCheckURL =
+        NormalisedURLDomain.normaliseUrlDomainOrThrowError(toCheckURL);
+    String _apiDomain = apiDomain;
+    Uri urlObject;
+    String hostname;
+    try {
+      urlObject = Uri.parse(_toCheckURL);
+      hostname = urlObject.host;
+    } catch (e) {
+      throw SuperTokensException(e.toString());
+    }
+
+    var domain = hostname;
+
+    if (cookieDomain == null) {
+      domain = [80, 443, 0].contains(urlObject.port)
+          ? domain.contains(urlObject.port.toString())
+              ? hostname + ":${urlObject.port}"
+              : hostname
+          : hostname + ":${urlObject.port}";
+
+      _apiDomain = NormalisedURLDomain(apiDomain).value;
+      Uri apiUrlObject;
+      String apiHostName;
+      try {
+        apiUrlObject = Uri.parse(_apiDomain);
+        apiHostName = apiUrlObject.host;
+      } catch (e) {
+        throw SuperTokensException(e.toString());
+      }
+
+      String temp = [80, 443, 0].contains(apiUrlObject.port)
+          ? apiHostName.contains(apiUrlObject.port.toString())
+              ? apiHostName + ":${apiUrlObject.port}"
+              : apiHostName
+          : apiHostName + ":${apiUrlObject.port}";
+
+      return domain == temp;
+    } else {
+      String normalisedCookieDomain =
+          NormalisedInputType.normaliseSessionScopeOrThrowError(cookieDomain);
+      if (cookieDomain.split(":").length > 1) {
+        String portString =
+            cookieDomain.split(':')[cookieDomain.split(':').length - 1];
+        if (![80, 443, 0].contains(portString)) {
+          normalisedCookieDomain = normalisedCookieDomain + ':' + portString;
+          domain = urlObject.port == null
+              ? domain
+              : domain + ':' + urlObject.port.toString();
+        }
+      }
+
+      if (cookieDomain.startsWith('.')) {
+        return ("." + domain).endsWith(normalisedCookieDomain);
+      } else {
+        return domain == normalisedCookieDomain;
+      }
+    }
+  }
 }
 
 class NormalisedInputType {
@@ -114,7 +176,8 @@ class NormalisedInputType {
       _sessionExpiredStatusCode = sessionExpiredStatusCode;
 
     String? _cookieDomain = null;
-    if (cookieDomain != null) _cookieDomain = cookieDomain;
+    if (cookieDomain != null)
+      _cookieDomain = normaliseSessionScopeOrThrowError(cookieDomain);
 
     Function(Eventype)? _eventHandler = (_) => {};
     if (eventHandler != null) _eventHandler = eventHandler;
@@ -135,5 +198,43 @@ class NormalisedInputType {
         _eventHandler,
         _preAPIHook,
         _postAPIHook);
+  }
+
+  static String normaliseSessionScopeOrThrowError(String sessionScope) {
+    String noDotNormalised = sessionScopeHelper(sessionScope);
+
+    if (noDotNormalised == "localhost" || Utils.isIPAddress(noDotNormalised)) {
+      return noDotNormalised;
+    }
+
+    if (sessionScope.startsWith(".")) {
+      return "." + noDotNormalised;
+    }
+
+    return noDotNormalised;
+  }
+
+  static String sessionScopeHelper(String SessionScope) {
+    String trimmedSessionScope = SessionScope.trim();
+    if (trimmedSessionScope.startsWith('.')) {
+      trimmedSessionScope = trimmedSessionScope.substring(1);
+    }
+
+    if (!trimmedSessionScope.startsWith('https://') &&
+        !trimmedSessionScope.startsWith('https://')) {
+      trimmedSessionScope = "https://" + trimmedSessionScope;
+    }
+
+    try {
+      Uri url = Uri.parse(trimmedSessionScope);
+      String host = url.host;
+      trimmedSessionScope = host;
+      if (trimmedSessionScope.startsWith('.')) {
+        trimmedSessionScope = trimmedSessionScope.substring(1);
+      }
+      return trimmedSessionScope;
+    } catch (e) {
+      throw SuperTokensException("Please provide a valid SessionScope");
+    }
   }
 }
