@@ -5,19 +5,25 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SuperTokensCookieStore {
-  Map<Uri, List<Cookie>>? _allCookies;
-  SharedPreferences? _sharedPreferences;
-  final _cookieSharedPrefsKey = "supertokens-persistent-cookies";
+  static Map<Uri, List<Cookie>>? _allCookies;
+  static SharedPreferences? _sharedPreferences;
+  static final _cookieSharedPrefsKey = "supertokens-persistent-cookies";
 
-  SuperTokensCookieStore() {
+  static final SuperTokensCookieStore _singleton =
+      SuperTokensCookieStore._internal();
+
+  factory SuperTokensCookieStore() {
     SharedPreferences.getInstance().then((value) {
       _sharedPreferences = value;
       _loadFromPersistence();
     });
+    return _singleton;
   }
 
+  SuperTokensCookieStore._internal();
+
   /// Loads all cookies stored in shared preferences into the in memory map [_allCookies]
-  Future<void> _loadFromPersistence() async {
+  static Future<void> _loadFromPersistence() async {
     _allCookies = {};
     String cookiesStringInStorage =
         _sharedPreferences?.getString(_cookieSharedPrefsKey) ?? "{}";

@@ -27,7 +27,7 @@ class Client extends http.BaseClient {
   }
 
   http.Client _innerClient = http.Client();
-  static SuperTokensCookieStore? _cookieStore;
+  static SuperTokensCookieStore? cookieStore;
 
   // This annotation will result in a warning to anyone using this method outside of this package
   @visibleForTesting
@@ -37,8 +37,8 @@ class Client extends http.BaseClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    if (Client._cookieStore == null) {
-      Client._cookieStore = SuperTokensCookieStore();
+    if (Client.cookieStore == null) {
+      Client.cookieStore = SuperTokensCookieStore();
     }
 
     if (!SuperTokens.isInitCalled) {
@@ -53,6 +53,11 @@ class Client extends http.BaseClient {
 
     if (SuperTokensUtils.getApiDomain(request.url.toString()) ==
         SuperTokens.refreshTokenUrl) {
+      return _innerClient.send(request);
+    }
+
+    if (!Utils.shouldDoInterceptions(request.url.toString(),
+        SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
       return _innerClient.send(request);
     }
 
@@ -71,7 +76,7 @@ class Client extends http.BaseClient {
           }
 
           // Add cookies to request headers
-          String? newCookiesToAdd = await Client._cookieStore
+          String? newCookiesToAdd = await Client.cookieStore
               ?.getCookieHeaderStringForRequest(request.url);
           String? existingCookieHeader =
               request.headers[HttpHeaders.cookieHeader];
@@ -84,6 +89,8 @@ class Client extends http.BaseClient {
             request.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
           }
 
+          request.headers.addAll({'st-auth-mode': 'cookie'});
+
           // http package does not allow retries with the same request object, so we clone the request when making the network call
           response =
               await _innerClient.send(SuperTokensUtils.copyRequest(request));
@@ -91,11 +98,9 @@ class Client extends http.BaseClient {
           // Save cookies from the response
           String? setCookieFromResponse =
               response.headers[HttpHeaders.setCookieHeader];
-          await Client._cookieStore
+          await Client.cookieStore
               ?.saveFromSetCookieHeader(request.url, setCookieFromResponse);
-          // response.headers.keys.forEach((element) {
-          //   print('$element: ${response.headers[element]}');
-          // });
+
           String? idRefreshTokenFromResponse =
               response.headers[idRefreshHeaderKey];
           if (idRefreshTokenFromResponse != null) {
@@ -172,9 +177,10 @@ class Client extends http.BaseClient {
       refreshReq.headers['rid'] = SuperTokens.rid;
       refreshReq.headers['fdi-version'] = Version.supported_fdi.join(',');
       // Add cookies to request headers
-      String? newCookiesToAdd = await Client._cookieStore
-          ?.getCookieHeaderStringForRequest(refreshUrl);
+      String? newCookiesToAdd =
+          await Client.cookieStore?.getCookieHeaderStringForRequest(refreshUrl);
       refreshReq.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
+      refreshReq.headers.addAll({'st-auth-mode': 'cookie'});
       refreshReq =
           SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
       var resp = await refreshReq.send();
@@ -184,7 +190,7 @@ class Client extends http.BaseClient {
       // Save cookies from the response
       String? setCookieFromResponse =
           response.headers[HttpHeaders.setCookieHeader];
-      await Client._cookieStore
+      await Client.cookieStore
           ?.saveFromSetCookieHeader(refreshReq.url, setCookieFromResponse);
       bool removeIdRefreshToken = true;
       bool removeFrontToken = true;
