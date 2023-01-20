@@ -73,10 +73,10 @@ function getConfig(enableAntiCsrf, enableJWT, jwtPropertyName) {
                                 refreshPOST: undefined
                             };
                         },
-                        functions: function(oI) {
+                        functions: function (oI) {
                             return {
                                 ...oI,
-                                createNewSession: async function({ res, userId, accessTokenPayload, sessionData }) {
+                                createNewSession: async function ({ res, userId, accessTokenPayload, sessionData }) {
                                     accessTokenPayload = {
                                         ...accessTokenPayload,
                                         customClaim: "customValue"
@@ -222,8 +222,12 @@ app.post("/multipleInterceptors", async (req, res) => {
 
 app.get(
     "/",
-    (req, res, next) => verifySession()(req, res, next),
+    (req, res, next) => {
+        console.log(`base::`, req.cookies);
+        return verifySession()(req, res, next)
+    },
     async (req, res) => {
+        console.log("index route");
         noOfTimesGetSessionCalledDuringTest += 1;
         res.send(req.session.getUserId());
     }
@@ -334,6 +338,7 @@ app.get("/refreshHeader", async (req, res) => {
 
 app.post("/auth/session/refresh", async (req, res, next) => {
     noOfTimesRefreshAttemptedDuringTest += 1;
+    console.log("refresh::", req.cookies);
     verifySession()(req, res, err => {
         if (err) {
             next(err);
