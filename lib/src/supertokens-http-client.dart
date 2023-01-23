@@ -1,34 +1,33 @@
-import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:mutex/mutex.dart';
 import 'package:supertokens/src/anti-csrf.dart';
 import 'package:supertokens/src/cookie-store.dart';
+import 'package:supertokens/src/errors.dart';
+import 'package:supertokens/src/front-token.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/src/utilities.dart';
+import 'package:supertokens/src/version.dart';
 import 'package:supertokens/supertokens.dart';
 
 import 'constants.dart';
 
 /// An [http.BaseClient] implementation for using SuperTokens for your network requests.
 /// To make use of supertokens, use this as the client for making network calls instead of [http.Client] or your own custom clients.
-/// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [SuperTokensHttpClient], pass [http.Client()] to use the default.
-class SuperTokensHttpClient extends http.BaseClient {
-  static SuperTokensHttpClient? _instance;
-  static SuperTokensHttpClient getInstance(http.Client innerClient) {
-    if (_instance == null) {
-      _instance = SuperTokensHttpClient._init(innerClient);
-    }
+/// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [Client], pass [http.Client()] to use the default.
+ReadWriteMutex _refreshAPILock = ReadWriteMutex();
 
-    return _instance!;
+class Client extends http.BaseClient {
+  Client({http.Client? client}) {
+    if (client != null) {
+      _innerClient = client;
+    }
   }
 
-  http.Client _innerClient;
-  final ReadWriteMutex _refreshAPILock = ReadWriteMutex();
-  SuperTokensCookieStore? _cookieStore;
-
-  SuperTokensHttpClient._init(this._innerClient);
+  http.Client _innerClient = http.Client();
+  static SuperTokensCookieStore? cookieStore;
 
   // This annotation will result in a warning to anyone using this method outside of this package
   @visibleForTesting
@@ -38,22 +37,27 @@ class SuperTokensHttpClient extends http.BaseClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    if (_cookieStore == null) {
-      _cookieStore = SuperTokensCookieStore();
+    if (Client.cookieStore == null) {
+      Client.cookieStore = SuperTokensCookieStore();
     }
 
     if (!SuperTokens.isInitCalled) {
       throw http.ClientException(
-          "SuperTokens.initialise must be called before using SuperTokensHttpClient");
+          "SuperTokens.initialise must be called before using Client");
     }
 
     if (SuperTokensUtils.getApiDomain(request.url.toString()) !=
-        SuperTokens.apiDomain) {
+        SuperTokens.config.apiDomain) {
       return _innerClient.send(request);
     }
 
     if (SuperTokensUtils.getApiDomain(request.url.toString()) ==
-        SuperTokens.refreshTokenEndpoint) {
+        SuperTokens.refreshTokenUrl) {
+      return _innerClient.send(request);
+    }
+
+    if (!Utils.shouldDoInterceptions(request.url.toString(),
+        SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
       return _innerClient.send(request);
     }
 
@@ -71,16 +75,9 @@ class SuperTokensHttpClient extends http.BaseClient {
             request.headers[antiCSRFHeaderKey] = antiCSRFToken;
           }
 
-          if (preRequestIdRefreshToken != null) {
-            request.headers[superTokensPlatformHeaderKey] =
-                superTokensPlatformName;
-            request.headers[superTokensSDKVersionHeaderKey] =
-                superTokensPluginVersion;
-          }
-
           // Add cookies to request headers
-          String? newCookiesToAdd =
-              await _cookieStore?.getCookieHeaderStringForRequest(request.url);
+          String? newCookiesToAdd = await Client.cookieStore
+              ?.getCookieHeaderStringForRequest(request.url);
           String? existingCookieHeader =
               request.headers[HttpHeaders.cookieHeader];
 
@@ -92,6 +89,8 @@ class SuperTokensHttpClient extends http.BaseClient {
             request.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
           }
 
+          request.headers.addAll({'st-auth-mode': 'cookie'});
+
           // http package does not allow retries with the same request object, so we clone the request when making the network call
           response =
               await _innerClient.send(SuperTokensUtils.copyRequest(request));
@@ -99,23 +98,41 @@ class SuperTokensHttpClient extends http.BaseClient {
           // Save cookies from the response
           String? setCookieFromResponse =
               response.headers[HttpHeaders.setCookieHeader];
-          await _cookieStore?.saveFromSetCookieHeader(
-              request.url, setCookieFromResponse);
+          await Client.cookieStore
+              ?.saveFromSetCookieHeader(request.url, setCookieFromResponse);
 
           String? idRefreshTokenFromResponse =
               response.headers[idRefreshHeaderKey];
           if (idRefreshTokenFromResponse != null) {
             await IdRefreshToken.setToken(idRefreshTokenFromResponse);
           }
+
+          String? frontTokenFromResponse =
+              response.headers[frontTokenHeaderKey];
+          if (frontTokenFromResponse != null) {
+            await FrontToken.setToken(frontTokenFromResponse);
+          }
         } finally {
           _refreshAPILock.release();
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
-          bool shouldRetry =
-              await _handleUnauthorised(preRequestIdRefreshToken, request);
-          if (!shouldRetry) {
-            return response;
+          UnauthorisedResponse shouldRetry =
+              await onUnauthorisedResponse(preRequestIdRefreshToken);
+          if (shouldRetry.status == UnauthorisedStatus.RETRY) {
+            send(request);
+          } else {
+            // TODO: handle exception
+            if (await IdRefreshToken.getToken() == null) {
+              AntiCSRF.removeToken();
+              FrontToken.removeToken();
+            }
+            if (shouldRetry.exception != null) {
+              var respObject = await http.Response.fromStream(response);
+              var data = respObject.body;
+              throw SuperTokensException(shouldRetry.exception!.message);
+            } else
+              return response;
           }
         } else {
           String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
@@ -133,137 +150,142 @@ class SuperTokensHttpClient extends http.BaseClient {
       String? idRefreshToken = await IdRefreshToken.getToken();
       if (idRefreshToken == null) {
         await AntiCSRF.removeToken();
+        await FrontToken.removeToken();
       }
     }
   }
 
-  Future<bool> _handleUnauthorised(
-      String? preRequestIdRefreshToken, http.BaseRequest request) async {
-    if (preRequestIdRefreshToken == null) {
-      String? idRefresh = await IdRefreshToken.getToken();
-      return idRefresh != null;
-    }
-
-    _UnauthorisedResponse _unauthorisedResponse =
-        await onUnauthorisedResponseRecieved(SuperTokens.refreshTokenEndpoint,
-            preRequestIdRefreshToken, request);
-
-    if (_unauthorisedResponse.status == _UnauthorisedStatus.SESSION_EXPIRED) {
-      return false;
-    } else if (_unauthorisedResponse.status == _UnauthorisedStatus.API_ERROR) {
-      throw _unauthorisedResponse.exception ??
-          http.ClientException("Network call completed with an error");
-    }
-
-    return true;
-  }
-
-  Future<_UnauthorisedResponse> onUnauthorisedResponseRecieved(
-      String refreshEndpointURL,
-      String preRequestIdRefreshToken,
-      http.BaseRequest request) async {
-    // this is intentionally not put in a loop because the loop in other projects is because locking has a timeout
-    http.Response refreshResponse;
+  static Future onUnauthorisedResponse(String? preRequestIdRefresh) async {
     try {
       await _refreshAPILock.acquireWrite();
+
       String? postLockIdRefresh = await IdRefreshToken.getToken();
-
       if (postLockIdRefresh == null) {
-        return _UnauthorisedResponse(
-            status: _UnauthorisedStatus.SESSION_EXPIRED);
+        SuperTokens.config.eventHandler(Eventype.UNAUTHORISED);
+        return UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED);
       }
-
-      if (postLockIdRefresh != preRequestIdRefreshToken) {
-        return _UnauthorisedResponse(status: _UnauthorisedStatus.RETRY);
+      if (postLockIdRefresh != preRequestIdRefresh) {
+        return UnauthorisedResponse(status: UnauthorisedStatus.RETRY);
       }
+      Uri refreshUrl = Uri.parse(SuperTokens.refreshTokenUrl);
+      http.Request refreshReq = http.Request('POST', refreshUrl);
 
-      Map<String, String> refreshHeaders = HashMap();
-      String? antiCSRF = await AntiCSRF.getToken(preRequestIdRefreshToken);
-
-      if (antiCSRF != null) {
-        refreshHeaders[antiCSRFHeaderKey] = antiCSRF;
+      String? antiCSRFToken = await AntiCSRF.getToken(preRequestIdRefresh);
+      if (antiCSRFToken != null) {
+        refreshReq.headers[antiCSRFHeaderKey] = antiCSRFToken;
       }
+      refreshReq.headers['rid'] = SuperTokens.rid;
+      refreshReq.headers['fdi-version'] = Version.supported_fdi.join(',');
+      // Add cookies to request headers
+      String? newCookiesToAdd =
+          await Client.cookieStore?.getCookieHeaderStringForRequest(refreshUrl);
+      refreshReq.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
+      refreshReq.headers.addAll({'st-auth-mode': 'cookie'});
+      refreshReq =
+          SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
+      var resp = await refreshReq.send();
+      http.Response response = await http.Response.fromStream(resp);
+      Map<String, String> headerFeilds = response.headers;
 
-      refreshHeaders[superTokensPlatformHeaderKey] = superTokensPlatformName;
-      refreshHeaders[superTokensSDKVersionHeaderKey] = superTokensPluginVersion;
-      refreshHeaders.addAll(SuperTokens.refreshAPICustomHeaders ?? HashMap());
-
-      // Add cookies
-      Uri refreshUri = Uri.parse(refreshEndpointURL);
-      String? cookieHeader =
-          await _cookieStore?.getCookieHeaderStringForRequest(refreshUri);
-      refreshHeaders[HttpHeaders.cookieHeader] = cookieHeader ?? "";
-
-      refreshResponse =
-          await _innerClient.post(refreshUri, headers: refreshHeaders);
-
-      // Save cookies from response
+      // Save cookies from the response
       String? setCookieFromResponse =
-          refreshResponse.headers[HttpHeaders.setCookieHeader];
-      await _cookieStore?.saveFromSetCookieHeader(
-          refreshUri, setCookieFromResponse);
-
+          response.headers[HttpHeaders.setCookieHeader];
+      await Client.cookieStore
+          ?.saveFromSetCookieHeader(refreshReq.url, setCookieFromResponse);
       bool removeIdRefreshToken = true;
-      String? idRefreshTokenFromResponse =
-          refreshResponse.headers[idRefreshHeaderKey];
-
-      if (idRefreshTokenFromResponse != null) {
-        await IdRefreshToken.setToken(idRefreshTokenFromResponse);
+      bool removeFrontToken = true;
+      if (headerFeilds.containsKey(idRefreshHeaderKey)) {
+        IdRefreshToken.setToken(headerFeilds[idRefreshHeaderKey] as String);
         removeIdRefreshToken = false;
       }
-
-      if (refreshResponse.statusCode == SuperTokens.sessionExpiryStatusCode &&
-          removeIdRefreshToken) {
-        await IdRefreshToken.setToken("remove");
+      if (headerFeilds.containsKey(frontTokenHeaderKey)) {
+        FrontToken.setToken(headerFeilds[frontTokenHeaderKey] as String);
+        removeFrontToken = false;
+      }
+      if (response.statusCode == SuperTokens.config.sessionExpiredStatusCode &&
+          removeIdRefreshToken &&
+          removeFrontToken) {
+        IdRefreshToken.setToken('remove');
+        FrontToken.removeToken();
       }
 
-      if (refreshResponse.statusCode != 200) {
-        String message = refreshResponse.body;
-        throw http.ClientException(message);
+      if (response.statusCode >= 300) {
+        return UnauthorisedResponse(
+            status: UnauthorisedStatus.API_ERROR,
+            error: SuperTokensException(
+                "Refresh API returned with status code: ${response.statusCode}"));
       }
 
-      String? idRefreshAfterResponse = await IdRefreshToken.getToken();
-      if (idRefreshAfterResponse == null) {
-        return _UnauthorisedResponse(
-            status: _UnauthorisedStatus.SESSION_EXPIRED);
-      }
+      SuperTokens.config
+          .postAPIHook(APIAction.REFRESH_TOKEN, refreshReq, response);
 
-      String? antiCSRFFromResponse = refreshResponse.headers[antiCSRFHeaderKey];
-      if (antiCSRFFromResponse != null) {
-        String? idRefreshToken = await IdRefreshToken.getToken();
-        await AntiCSRF.setToken(antiCSRFFromResponse, idRefreshToken);
-      }
-
-      return _UnauthorisedResponse(status: _UnauthorisedStatus.RETRY);
-    } catch (e) {
-      http.ClientException exception = http.ClientException(
-          "$e"); // Need to do it this way to capture the error message since catch returns a generic object not a class
       String? idRefreshToken = await IdRefreshToken.getToken();
-      if (idRefreshToken == null) {
-        return _UnauthorisedResponse(
-            status: _UnauthorisedStatus.SESSION_EXPIRED);
+      String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
+      if (antiCSRFFromResponse != null) {
+        AntiCSRF.setToken(antiCSRFFromResponse, idRefreshToken);
+      }
+      String? frontTokenFromResponse = response.headers[frontTokenHeaderKey];
+      if (frontTokenFromResponse != null) {
+        FrontToken.setToken(frontTokenFromResponse);
       }
 
-      return _UnauthorisedResponse(
-          status: _UnauthorisedStatus.API_ERROR, exception: exception);
+      if (idRefreshToken == null) {
+        AntiCSRF.removeToken();
+        FrontToken.removeToken();
+        return UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED);
+      }
+
+      SuperTokens.config.eventHandler(Eventype.REFRESH_SESSION);
+      return UnauthorisedResponse(status: UnauthorisedStatus.RETRY);
+    } catch (e) {
+      return UnauthorisedResponse(
+          status: UnauthorisedStatus.API_ERROR,
+          error: SuperTokensException("Some unknown error occured"));
     } finally {
       _refreshAPILock.release();
     }
   }
 }
 
-enum _UnauthorisedStatus {
+enum UnauthorisedStatus {
   SESSION_EXPIRED,
   API_ERROR,
   RETRY,
 }
 
-class _UnauthorisedResponse {
-  final _UnauthorisedStatus status;
+class UnauthorisedResponse {
+  final UnauthorisedStatus status;
+  final Exception? error;
   final http.ClientException? exception;
 
-  _UnauthorisedResponse({
+  UnauthorisedResponse({
     required this.status,
+    this.error,
     this.exception,
   });
 }
+
+Client _innerSTClient = Client();
+
+Future<http.Response> get(Uri url, {Map<String, String>? headers}) =>
+    _innerSTClient.get(url, headers: headers);
+
+Future<http.Response> post(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerSTClient.post(url, headers: headers, body: body, encoding: encoding);
+
+Future<http.Response> put(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerSTClient.put(url, headers: headers, body: body, encoding: encoding);
+
+Future<http.Response> patch(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerSTClient.patch(url, headers: headers, body: body, encoding: encoding);
+
+Future<http.Response> delete(Uri url,
+        {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+    _innerSTClient.delete(url,
+        headers: headers, body: body, encoding: encoding);
+
+Future<http.StreamedResponse> send(http.BaseRequest req) =>
+    _innerSTClient.send(req);

@@ -5,19 +5,25 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SuperTokensCookieStore {
-  Map<Uri, List<Cookie>>? _allCookies;
-  SharedPreferences? _sharedPreferences;
-  final _cookieSharedPrefsKey = "supertokens-persistent-cookies";
+  static Map<Uri, List<Cookie>>? _allCookies;
+  static SharedPreferences? _sharedPreferences;
+  static final _cookieSharedPrefsKey = "supertokens-persistent-cookies";
 
-  SuperTokensCookieStore() {
+  static final SuperTokensCookieStore _singleton =
+      SuperTokensCookieStore._internal();
+
+  factory SuperTokensCookieStore() {
     SharedPreferences.getInstance().then((value) {
       _sharedPreferences = value;
       _loadFromPersistence();
     });
+    return _singleton;
   }
 
+  SuperTokensCookieStore._internal();
+
   /// Loads all cookies stored in shared preferences into the in memory map [_allCookies]
-  Future<void> _loadFromPersistence() async {
+  static Future<void> _loadFromPersistence() async {
     _allCookies = {};
     String cookiesStringInStorage =
         _sharedPreferences?.getString(_cookieSharedPrefsKey) ?? "{}";
@@ -65,13 +71,14 @@ class SuperTokensCookieStore {
     _allCookies?.removeWhere((key, value) => value.isEmpty);
 
     await _updatePersistentStorage();
+    await _loadFromPersistence();
   }
 
   /// Returns a Uri to use when saving the cookie
   Future<Uri> _getCookieUri(Uri requestUri, Cookie cookie) async {
     Uri cookieUri = Uri.parse(
         // ignore: unnecessary_null_comparison
-        "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "/" : cookie.path}");
+        "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "" : cookie.path}");
 
     if (cookie.domain != null) {
       String domain = cookie.domain ?? "";
@@ -177,6 +184,7 @@ class SuperTokensCookieStore {
 
     _allCookies?[uri] = currentCookies;
     await _updatePersistentStorage();
+    await _loadFromPersistence();
     return;
   }
 
