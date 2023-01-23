@@ -6,26 +6,39 @@ orbs:
 jobs:
   test-dev-tag-as-not-passed:
     docker:
-      - image: rishabhpoddar/supertokens_flutter_sdk_testing
+      - image: rishabhpoddar/supertokens_website_sdk_testing_node_16
     steps:
       - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/ # This makes npm use http instead of ssh (required for node 16)
       - checkout
       - run: (cd .circleci/ && ./markDevTagAsTestNotPassed.sh)
   test-unit:
-    macos:
-      xcode: 14.1.0
+    docker: 
+      - image: rishabhpoddar/supertokens_flutter_sdk_testing
     parameters:
       fdi-version:
         type: string
     steps:
       - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/ # This makes npm use http instead of ssh (required for node 16)
       - checkout
-      - run: cd ../ && curl -L -o java.tar.gz "https://drive.google.com/u/0/uc?id=1zFjmXJFYEYw1bhPIZ0H2Q3oSy_HRCEQk&export=download&confirm=t&uuid=b8c73f44-b6a7-4b4c-bfa4-18a56ea21e54"
-      - run: cd ../ && tar -xzvf java.tar.gz
+      - run: apt-get clean
+      - run: apt-get update
+      - run: apt-get install -f
+      - run: apt-get upgrade -y
+      - run: update-ca-certificates -f
+      - run: cd / && wget https://download.java.net/java/GA/jdk15.0.1/51f4f36ad4ef43e39d0dfdbaf6549e32/9/GPL/openjdk-15.0.1_linux-x64_bin.tar.gz
+      - run: cd / && mv openjdk-15.0.1_linux-x64_bin.tar.gz /usr/java
+      - run: cd /usr/java && tar -xzvf openjdk-15.0.1_linux-x64_bin.tar.gz
+      - run: cd / && echo 'JAVA_HOME=/usr/java/jdk-15.0.1' >> /etc/profile
+      - run: cd / && echo 'PATH=$PATH:$HOME/bin:$JAVA_HOME/bin' >> /etc/profile
+      - run: cd / && echo 'export JAVA_HOME' >> /etc/profile
+      - run: cd / && echo 'export JRE_HOME' >> /etc/profile
+      - run: cd / && echo 'export PATH' >> /etc/profile
+      - run: cd / && update-alternatives --install "/usr/bin/java" "java" "/usr/java/jdk-15.0.1/bin/java" 2
+      - run: cd / && update-alternatives --install "/usr/bin/javac" "javac" "/usr/java/jdk-15.0.1/bin/javac" 2
       - run: (cd .circleci/ && ./doTests.sh  << parameters.fdi-version >>)
   test-success:
     docker:
-      - image: rishabhpoddar/supertokens_flutter_sdk_testing
+      - image: rishabhpoddar/supertokens_website_sdk_testing_node_16
     steps:
       - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/ # This makes npm use http instead of ssh (required for node 16)
       - checkout
