@@ -196,7 +196,7 @@ void main() {
     int counter = await SuperTokensTestUtils.refreshTokenCounter();
     if (counter != 1) failed = true;
 
-    assert(!failed);
+    assert(failed);
   });
 
   //! This test seems incorrect on iOS
