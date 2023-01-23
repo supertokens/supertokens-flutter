@@ -3,14 +3,13 @@ import 'package:example/home.dart';
 import 'package:flutter/material.dart';
 // Local imports
 import 'package:example/login.dart';
-import 'package:supertokens/supertokens.dart';
+import 'package:supertokens_flutter/supertokens.dart';
 
 import 'network-manager.dart';
 
 void main() {
-  SuperTokens.initialise(
-    refreshTokenEndpoint: "${NetworkManager.baseURL}/refresh",
-    sessionExpiryStatusCode: 401,
+  SuperTokens.init(
+    apiDomain: "localhost:5000",
   );
   runApp(MyApp());
 }

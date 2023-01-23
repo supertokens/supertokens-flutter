@@ -4,5 +4,4 @@
 /// [Client] uses SharedPreferences to store cookies across app launches
 library supertokens;
 
-export "src/supertokens.dart";
-export "src/errors.dart";
+export 'src/dio-interceptor-wrapper.dart';

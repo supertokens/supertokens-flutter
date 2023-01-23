@@ -1,0 +1,67 @@
+version: 2.1
+orbs:
+  continuation: circleci/continuation@0.1.2
+  slack: circleci/slack@3.4.2
+  jq: circleci/jq@2.2.0
+jobs:
+  test-dev-tag-as-not-passed:
+    docker:
+      - image: rishabhpoddar/supertokens_flutter_sdk_testing
+    steps:
+      - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/ # This makes npm use http instead of ssh (required for node 16)
+      - checkout
+      - run: (cd .circleci/ && ./markDevTagAsTestNotPassed.sh)
+  test-unit:
+    macos:
+      xcode: 14.1.0
+    parameters:
+      fdi-version:
+        type: string
+    steps:
+      - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/ # This makes npm use http instead of ssh (required for node 16)
+      - checkout
+      - run: cd ../ && curl -L -o java.tar.gz "https://drive.google.com/u/0/uc?id=1zFjmXJFYEYw1bhPIZ0H2Q3oSy_HRCEQk&export=download&confirm=t&uuid=b8c73f44-b6a7-4b4c-bfa4-18a56ea21e54"
+      - run: cd ../ && tar -xzvf java.tar.gz
+      - run: (cd .circleci/ && ./doTests.sh  << parameters.fdi-version >>)
+  test-success:
+    docker:
+      - image: rishabhpoddar/supertokens_flutter_sdk_testing
+    steps:
+      - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/ # This makes npm use http instead of ssh (required for node 16)
+      - checkout
+      - run: (cd .circleci/ && ./markAsSuccess.sh)
+      - slack/status
+
+workflows:
+  version: 2
+  tagged-build:
+    jobs:
+      - test-dev-tag-as-not-passed:
+          filters:
+            tags:
+              only: /dev-v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+      - test-unit:
+          requires:
+            - test-dev-tag-as-not-passed
+          context:
+            - slack-notification
+          filters:
+            tags:
+              only: /dev-v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+          matrix:
+            parameters:
+              fdi-version: placeholder
+      - test-success:
+          requires:
+            - test-unit
+          context:
+            - slack-notification
+          filters:
+            tags:
+              only: /dev-v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
