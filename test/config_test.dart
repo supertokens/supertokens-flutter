@@ -407,9 +407,5 @@ void main() {
           "http://localhost.org:8080");
       expect(out, "http://localhost.org:8080");
     });
-    test("empty", () {
-      String? out = NormalisedURLDomain.normaliseUrlDomainOrThrowError("");
-      expect(out, "");
-    });
   });
 }

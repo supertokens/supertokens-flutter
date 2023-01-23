@@ -125,6 +125,25 @@ class Utils {
       }
     }
   }
+
+  static bool doesUrlHavePort(Uri uri) {
+    String scheme = uri.scheme;
+    int port = uri.port;
+
+    if (port == 0) {
+      return false;
+    }
+
+    if (scheme == "http" && port == 80) {
+      return false;
+    }
+
+    if (scheme == "https" && port == 443) {
+      return false;
+    }
+
+    return true;
+  }
 }
 
 class NormalisedInputType {

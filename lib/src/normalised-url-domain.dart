@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:supertokens/src/errors.dart';
 import 'package:supertokens/src/utilities.dart';
 
@@ -14,17 +12,41 @@ class NormalisedURLDomain {
       {bool ignoreProtocal = false}) {
     String trimmedInput = input.trim();
 
-    if (trimmedInput.length == 0) return trimmedInput;
+    try {
+      if (!trimmedInput.startsWith("http://") &&
+          !trimmedInput.startsWith("https://")) {
+        throw SuperTokensException("failable error");
+      }
+
+      Uri uri = Uri.parse(trimmedInput);
+      String hostName = uri.host;
+      String scheme = uri.scheme;
+      // Flutter returns one of these values if the URL does not have a port
+      bool hasNoPort = !Utils.doesUrlHavePort(uri);
+      String hostSuffix = hasNoPort ? hostName : hostName + ":${uri.port}";
+
+      if (ignoreProtocal) {
+        if (hostName.startsWith("localhost") || Utils.isIPAddress(input)) {
+          trimmedInput = "https://$hostSuffix";
+        } else {
+          trimmedInput = "https://" + hostSuffix;
+        }
+      } else {
+        trimmedInput = scheme + "://" + hostSuffix;
+      }
+
+      return trimmedInput;
+    } catch (e) {}
 
     if (trimmedInput.startsWith("/")) {
-      throw SuperTokensException("Please provide valid domain name");
+      throw SuperTokensException("Please provide a valid domain name");
     }
 
     if (trimmedInput.indexOf(".") == 0) {
       trimmedInput = trimmedInput.substring(1);
     }
 
-    if ((trimmedInput.indexOf('.') == -1 ||
+    if ((trimmedInput.indexOf('.') != -1 ||
             trimmedInput.startsWith("localhost")) &&
         !trimmedInput.startsWith('https') &&
         !trimmedInput.startsWith('http')) {
@@ -36,35 +58,6 @@ class NormalisedURLDomain {
       } catch (e) {}
     }
 
-    String hostname;
-    String scheme;
-    String hostSuffix;
-
-    try {
-      Uri uri = Uri.parse(trimmedInput);
-      hostname = uri.host;
-      if (hostname.length == 0 && trimmedInput.contains('localhost')) {
-        return trimmedInput;
-      }
-      scheme = uri.scheme;
-      hostSuffix = [80, 443, 0].contains(uri.port)
-          ? trimmedInput.contains(uri.port.toString())
-              ? hostname + ":${uri.port}"
-              : hostname
-          : hostname + ":${uri.port}";
-
-      if (ignoreProtocal) {
-        if (hostname.startsWith("localhost") || Utils.isIPAddress(input)) {
-          trimmedInput = "https://$hostSuffix";
-        } else {
-          trimmedInput = scheme + "://" + hostSuffix;
-        }
-      } else {
-        trimmedInput = scheme + "://" + hostSuffix;
-      }
-      return trimmedInput;
-    } catch (e) {
-      throw SuperTokensException('Url error');
-    }
+    throw SuperTokensException("Please provide a valid domain name");
   }
 }
