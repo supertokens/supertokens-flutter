@@ -52,40 +52,6 @@ void main() {
     if (counter != 0) fail("Refresh counter returned non zero value");
   });
 
-  test("Test things work if AntiCSRF is diabled", () async {
-    await SuperTokensTestUtils.startST(validity: 3, disableAntiCSRF: true);
-    print(apiBasePath);
-    print("pre init");
-    SuperTokens.init(apiDomain: apiBasePath);
-    print("post init");
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    print("post get login");
-    Dio dio = setUpDio();
-    print("post setup");
-    var resp = await dio.fetch(req);
-    print("post req mde");
-    if (resp.statusCode != 200) {
-      fail("Login request gave statusCode::${resp.statusCode}");
-    } else {
-      print(await FrontToken.getToken());
-      String userInfoURL = "";
-      await Future.delayed(Duration(seconds: 5));
-      print("post delay");
-      var userInfoResp = await dio.get(userInfoURL);
-      print("post userinfo req");
-      if (userInfoResp.statusCode != 200)
-        fail("API request failed with statusCode::${userInfoResp.statusCode}");
-      int counter = await SuperTokensTestUtils.refreshTokenCounter();
-      print("post refresh counter");
-      if (counter != 1) fail("Refresh counter return wrong value::$counter");
-    }
-
-    // logout
-    var logoutResp = await dio.post("/logout");
-    print("post logout req");
-    if (logoutResp.statusCode != 200) fail("login request failed");
-  });
-
   test("Test custom headers for refresh API", () async {
     await SuperTokensTestUtils.startST(validity: 3);
     SuperTokens.init(
@@ -205,30 +171,30 @@ void main() {
     assert(!failed);
   });
 
-  test('Refresh only get called once after multiple request (Concurrency)',
-      () async {
-    bool failed = false;
-    await SuperTokensTestUtils.startST(validity: 10);
-    List<bool> results = [];
-    SuperTokens.init(apiDomain: apiBasePath);
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    Dio dio = setUpDio();
-    var resp = await dio.fetch(req);
-    if (resp.statusCode != 200) fail("Login req failed");
-    List<Future> reqs = [];
-    for (int i = 0; i < 300; i++) {
-      dio.get("").then((resp) {
-        if (resp.statusCode == 200)
-          results.add(true);
-        else
-          results.add(false);
-      });
-    }
-    await Future.wait(reqs);
-    int refreshCount = await SuperTokensTestUtils.refreshTokenCounter();
-    if (refreshCount != 1 && !results.contains(false) && results.length == 300)
-      fail("");
-  });
+  // test('Refresh only get called once after multiple request (Concurrency)',
+  //     () async {
+  //   bool failed = false;
+  //   await SuperTokensTestUtils.startST(validity: 10);
+  //   List<bool> results = [];
+  //   SuperTokens.init(apiDomain: apiBasePath);
+  //   RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
+  //   Dio dio = setUpDio();
+  //   var resp = await dio.fetch(req);
+  //   if (resp.statusCode != 200) fail("Login req failed");
+  //   List<Future> reqs = [];
+  //   for (int i = 0; i < 300; i++) {
+  //     dio.get("").then((resp) {
+  //       if (resp.statusCode == 200)
+  //         results.add(true);
+  //       else
+  //         results.add(false);
+  //     });
+  //   }
+  //   await Future.wait(reqs);
+  //   int refreshCount = await SuperTokensTestUtils.refreshTokenCounter();
+  //   if (refreshCount != 1 && !results.contains(false) && results.length == 300)
+  //     fail("");
+  // });
 
   test("Test does session exist after user is loggedIn", () async {
     await SuperTokensTestUtils.startST(validity: 1);

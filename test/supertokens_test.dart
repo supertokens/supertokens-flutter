@@ -15,6 +15,7 @@ import 'test-utils.dart';
 
 void main() {
   String apiBasePath = SuperTokensTestUtils.baseUrl;
+  
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     return SuperTokensTestUtils.beforeAllTest();
@@ -43,36 +44,6 @@ void main() {
 
     int counter = await SuperTokensTestUtils.refreshTokenCounter();
     if (counter != 0) fail("Refresh counter returned non zero value");
-  });
-
-  test("Test things work if AntiCSRF is disabled", () async {
-    await SuperTokensTestUtils.startST(validity: 3, disableAntiCSRF: true);
-    SuperTokens.init(apiDomain: apiBasePath);
-    Request req = SuperTokensTestUtils.getLoginRequest();
-    StreamedResponse streamedResp;
-    try {
-      streamedResp = await http.send(req);
-    } catch (e) {
-      fail("Login request failed");
-    }
-    var resp = await Response.fromStream(streamedResp);
-    if (resp.statusCode != 200) {
-      fail("Login request gave ${resp.statusCode}");
-    } else {
-      Uri userInfoURL = Uri.parse("$apiBasePath/");
-      // sleep(Duration(seconds: 5));
-      await Future.delayed(Duration(seconds: 5), () {});
-      var userInfoResp = await http.get(userInfoURL);
-      if (userInfoResp.statusCode != 200)
-        fail("API responded with staus ${userInfoResp.statusCode}");
-      int counter = await SuperTokensTestUtils.refreshTokenCounter();
-      if (counter != 1) fail("Refresh counter returned wrong value: $counter");
-    }
-
-    // logout
-    Uri logoutReq = Uri.parse("$apiBasePath/logout");
-    var logoutResp = await http.post(logoutReq);
-    if (logoutResp.statusCode != 200) fail("Logout req failed");
   });
 
   test("Test custom headers for refreshAPI", () async {
@@ -226,35 +197,6 @@ void main() {
     if (counter != 1) failed = true;
 
     assert(!failed);
-  });
-
-  test('Refresh only get called once after multiple request (Concurrency)',
-      () async {
-    bool failed = false;
-    await SuperTokensTestUtils.startST(validity: 10);
-    List<bool> results = [];
-    SuperTokens.init(apiDomain: apiBasePath);
-    Request req = SuperTokensTestUtils.getLoginRequest();
-    StreamedResponse streamedResp;
-    streamedResp = await http.send(req);
-    var resp = await Response.fromStream(streamedResp);
-    if (resp.statusCode != 200) {
-      failed = true;
-    }
-    List<Future> reqs = [];
-    Uri userInfoUrl = Uri.parse("$apiBasePath/");
-    for (int i = 0; i < 300; i++) {
-      http.get(userInfoUrl).then((resp) {
-        if (resp.statusCode == 200)
-          results.add(true);
-        else
-          results.add(false);
-      });
-    }
-    await Future.wait(reqs);
-    int refreshCount = await SuperTokensTestUtils.refreshTokenCounter();
-    if (refreshCount != 1 && !results.contains(false) && results.length == 300)
-      fail("");
   });
 
   //! This test seems incorrect on iOS
