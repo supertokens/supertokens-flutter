@@ -4,7 +4,7 @@ frontendDriverArray=`echo $frontendDriverJson | jq ".versions"`
 echo "got frontend driver relations"
 
 # get sdk version
-version=`cat pubspec.yaml | grep -e 'version:'`
+version=`cat ../pubspec.yaml | grep -e 'version:'`
 while IFS=':' read -ra ADDR; do
     counter=0
     for i in "${ADDR[@]}"; do
