@@ -5,25 +5,6 @@ orbs:
   slack: circleci/slack@3.4.2
   jq: circleci/jq@2.2.0
 jobs:
-  publish:
-    docker: 
-      - image: rishabhpoddar/supertokens_flutter_sdk_testing
-    environment:
-      JVM_OPTS: -Xmx3200m
-    steps:
-      - checkout
-      - run: mkdir temp
-      - run: cp CHANGELOG.md temp/CHANGELOG.md
-      - run: cp README.md temp/README.md
-      - run: cp LICENSE temp/LICENSE
-      - run: cp CONTRIBUTING.md temp/CONTRIBUTING.md
-      - run: cp -r lib/ temp/lib/
-      - run: cp pubspec.yaml temp/pubspec.yaml
-      - run:
-          name: Setup pub.dev login
-          command: cd .circleci && ./setupPubLogin.sh
-      - run: cd temp && flutter pub publish
-      - run: rm ~/.pub-cache/credentials.json
   test:
     docker: 
       - image: rishabhpoddar/supertokens_flutter_sdk_testing
@@ -41,14 +22,6 @@ workflows:
   version: 2
   tagged-build:
     jobs:
-      - publish:
-          context:
-              - slack-notification
-          filters:
-            tags:
-              only: /v[0-9]+(\.[0-9]+)*/
-            branches:
-              ignore: /.*/
       - test:
           context:
             - slack-notification
