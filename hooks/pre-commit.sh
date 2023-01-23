@@ -28,7 +28,7 @@ done <<< "$version"
 
 version=`echo $version | xargs`
 
-codeversion=`cat lib/src/constants.dart | grep -e 'superTokensPluginVersion'`
+codeversion=`cat lib/src/version.dart | grep -e 'sdkVersion'`
 while IFS='"' read -ra ADDR; do
     counter=0
     for i in "${ADDR[@]}"; do
@@ -44,7 +44,7 @@ if [ $version != $codeversion ]
 then
     RED='\033[0;31m'
     NC='\033[0m' # No Color
-    printf "${RED}Version codes in pubspec.yaml and ./lib/src/constants.dart are not the same${NC}\n"
+    printf "${RED}Version codes in pubspec.yaml and ./lib/src/version.dart are not the same${NC}\n"
     exit 1
 fi
 
