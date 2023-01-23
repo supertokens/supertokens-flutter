@@ -58,7 +58,7 @@ SuperTokens is made possible by a passionate team and a strong community of deve
   - [Github Issues](https://github.com/supertokens/supertokens-flutter/issues)
   - [Discord](https://supertokens.io/discord)
   - [Twitter](https://twitter.com/supertokensio)
-  - or [email us](mailto:team@supertokens.io)
+  - or [email us](mailto:team@supertokens.com)
   
 Additional resources you might find useful:
   - [SuperTokens Docs](https://supertokens.io/docs/community/getting-started/installation)
