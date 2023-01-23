@@ -225,7 +225,6 @@ app.get(
     (req, res, next) => verifySession()(req, res, next),
     async (req, res) => {
         noOfTimesGetSessionCalledDuringTest += 1;
-        console.log("request comes here");
         res.send(req.session.getUserId());
     }
 );
