@@ -33,12 +33,6 @@ jobs:
           command: cd .circleci && ./generateConfig.sh
       - continuation/continue:
           configuration_path: .circleci/config_continue.yml
-      # - run: flutter pub get
-      # - run: (cd / && ./runMySQL.sh)
-      # - run: mysql -u root --password=root -e "CREATE DATABASE auth_session;"
-      # - run: mysql -u root --password=root -e "set global max_connections = 10000;"
-      # - run: (cd .circleci/ && ./doTests.sh)
-      # - slack/status
 
 workflows:
   version: 2
