@@ -21,6 +21,7 @@ jobs:
       - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/ # This makes npm use http instead of ssh (required for node 16)
       - checkout
       - run: apt-get clean
+      - run: apt-get purge mysql* -y
       - run: apt-get update
       - run: apt-get install -f
       - run: apt-get upgrade -y
