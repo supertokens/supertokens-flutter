@@ -18,6 +18,9 @@ done <<< "$version"
 
 version=`echo $version | xargs`
 
+echo $version
+echo $frontendDriverArray
+
 responseStatus=`curl -s -o /dev/null -w "%{http_code}" -X PUT \
   https://api.supertokens.io/0/frontend \
   -H 'Content-Type: application/json' \
