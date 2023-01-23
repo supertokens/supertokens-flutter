@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
-import 'package:supertokens/src/normalised-url-domain.dart';
-import 'package:supertokens/src/normalised-url-path.dart';
+import 'package:supertokens_flutter/src/normalised-url-domain.dart';
+import 'package:supertokens_flutter/src/normalised-url-path.dart';
 
 import '../supertokens.dart';
 

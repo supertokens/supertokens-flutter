@@ -1,5 +1,5 @@
-import 'package:supertokens/src/errors.dart';
-import 'package:supertokens/src/utilities.dart';
+import 'package:supertokens_flutter/src/errors.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 
 class NormalisedURLDomain {
   late String value;

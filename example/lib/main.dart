@@ -3,7 +3,7 @@ import 'package:example/home.dart';
 import 'package:flutter/material.dart';
 // Local imports
 import 'package:example/login.dart';
-import 'package:supertokens/supertokens.dart';
+import 'package:supertokens_flutter/supertokens.dart';
 
 import 'network-manager.dart';
 

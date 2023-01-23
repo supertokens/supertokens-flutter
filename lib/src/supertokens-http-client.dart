@@ -3,14 +3,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:mutex/mutex.dart';
-import 'package:supertokens/src/anti-csrf.dart';
-import 'package:supertokens/src/cookie-store.dart';
-import 'package:supertokens/src/errors.dart';
-import 'package:supertokens/src/front-token.dart';
-import 'package:supertokens/src/id-refresh-token.dart';
-import 'package:supertokens/src/utilities.dart';
-import 'package:supertokens/src/version.dart';
-import 'package:supertokens/supertokens.dart';
+import 'package:supertokens_flutter/src/anti-csrf.dart';
+import 'package:supertokens_flutter/src/cookie-store.dart';
+import 'package:supertokens_flutter/src/errors.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
+import 'package:supertokens_flutter/src/id-refresh-token.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
+import 'package:supertokens_flutter/src/version.dart';
+import 'package:supertokens_flutter/supertokens.dart';
 
 import 'constants.dart';
 

@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import "package:http/http.dart" as http;
-import 'package:supertokens/src/anti-csrf.dart';
-import 'package:supertokens/src/front-token.dart';
-import 'package:supertokens/src/id-refresh-token.dart';
-import 'package:supertokens/supertokens.dart';
+import 'package:supertokens_flutter/src/anti-csrf.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
+import 'package:supertokens_flutter/src/id-refresh-token.dart';
+import 'package:supertokens_flutter/supertokens.dart';
 
 class _MyHttpOverrides extends HttpOverrides {}
 

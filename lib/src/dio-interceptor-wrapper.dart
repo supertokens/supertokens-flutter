@@ -2,15 +2,15 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:mutex/mutex.dart';
-import 'package:supertokens/src/anti-csrf.dart';
-import 'package:supertokens/src/constants.dart';
-import 'package:supertokens/src/cookie-store.dart';
-import 'package:supertokens/src/errors.dart';
-import 'package:supertokens/src/front-token.dart';
-import 'package:supertokens/src/id-refresh-token.dart';
-import 'package:supertokens/src/supertokens-http-client.dart';
-import 'package:supertokens/src/supertokens.dart';
-import 'package:supertokens/src/utilities.dart';
+import 'package:supertokens_flutter/src/anti-csrf.dart';
+import 'package:supertokens_flutter/src/constants.dart';
+import 'package:supertokens_flutter/src/cookie-store.dart';
+import 'package:supertokens_flutter/src/errors.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
+import 'package:supertokens_flutter/src/id-refresh-token.dart';
+import 'package:supertokens_flutter/src/supertokens-http-client.dart';
+import 'package:supertokens_flutter/src/supertokens.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 
 class SuperTokensInterceptorWrapper extends Interceptor {
   ReadWriteMutex _refreshAPILock = ReadWriteMutex();

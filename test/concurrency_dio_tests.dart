@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supertokens/src/anti-csrf.dart';
-import 'package:supertokens/src/dio-interceptor-wrapper.dart';
-import 'package:supertokens/src/front-token.dart';
-import 'package:supertokens/src/id-refresh-token.dart';
-import 'package:supertokens/src/supertokens.dart';
-import 'package:supertokens/supertokens.dart';
+import 'package:supertokens_flutter/src/anti-csrf.dart';
+import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
+import 'package:supertokens_flutter/src/id-refresh-token.dart';
+import 'package:supertokens_flutter/src/supertokens.dart';
+import 'package:supertokens_flutter/supertokens.dart';
 
 import 'test-utils.dart';
 

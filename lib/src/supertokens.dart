@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'package:supertokens/src/errors.dart';
-import 'package:supertokens/src/front-token.dart';
-import 'package:supertokens/src/id-refresh-token.dart';
-import 'package:supertokens/src/utilities.dart';
+import 'package:supertokens_flutter/src/errors.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
+import 'package:supertokens_flutter/src/id-refresh-token.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:http/http.dart' as http;
-import 'package:supertokens/src/supertokens-http-client.dart';
+import 'package:supertokens_flutter/src/supertokens-http-client.dart';
 
 enum Eventype {
   SIGN_OUT,

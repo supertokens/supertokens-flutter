@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:mutex/mutex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supertokens/src/id-refresh-token.dart';
-import 'package:supertokens/supertokens.dart';
+import 'package:supertokens_flutter/src/id-refresh-token.dart';
+import 'package:supertokens_flutter/supertokens.dart';
 
 class FrontToken {
   static String? tokenInMemory;

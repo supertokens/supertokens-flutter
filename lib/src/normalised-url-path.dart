@@ -1,4 +1,4 @@
-import 'package:supertokens/src/errors.dart';
+import 'package:supertokens_flutter/src/errors.dart';
 
 class NormalisedURLPath {
   late String value;

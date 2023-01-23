@@ -15,7 +15,7 @@ dependencies:
     sdk: flutter
 
   http: 0.13.1
-  supertokens:
+  supertokens_flutter:
     path: ../
 
 dev_dependencies:

@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:supertokens/supertokens.dart';
-import 'package:supertokens/http.dart';
+import 'package:supertokens_flutter/supertokens.dart';
+import 'package:supertokens_flutter/http.dart';
 
 class NetworkManager {
   static NetworkManager shared = NetworkManager.shared;

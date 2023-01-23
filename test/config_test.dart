@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:supertokens/src/normalised-url-domain.dart';
-import 'package:supertokens/src/normalised-url-path.dart';
+import 'package:supertokens_flutter/src/normalised-url-domain.dart';
+import 'package:supertokens_flutter/src/normalised-url-path.dart';
 
 void main() {
   group('Normalise URL Path :: ', () {
