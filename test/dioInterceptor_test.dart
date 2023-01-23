@@ -8,6 +8,7 @@ import 'package:supertokens/src/dio-interceptor-wrapper.dart';
 import 'package:supertokens/src/front-token.dart';
 import 'package:supertokens/src/id-refresh-token.dart';
 import 'package:supertokens/src/supertokens.dart';
+import 'package:supertokens/supertokens.dart';
 
 import 'test-utils.dart';
 
@@ -155,12 +156,13 @@ void main() {
       RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
       Dio dio = setUpDio();
       var resp = await dio.fetch(req);
-      if (resp.statusCode == 200) fail("Login req failed");
-    } catch (e) {
-      error = e;
+      fail("Request should have failed but didnt");
+    } on DioError catch(e) {
+      error = e.error;
     }
 
-    
+    assert(error != null);
+    assert(error.toString() == "SuperTokens.initialise must be called before using Client");
   });
 
   test('More than one calls to init works', () async {
@@ -258,6 +260,7 @@ void main() {
   // test("Test other other domains work without Authentication", () async {
   //   await SuperTokensTestUtils.startST(validity: 1);
   //   SuperTokens.init(apiDomain: apiBasePath);
+  //   Dio dio = setUpDio();
   //   Uri fakeGetApi = Uri.parse("https://www.google.com");
   //   var resp = await http.get(fakeGetApi);
   //   if (resp.statusCode != 200)

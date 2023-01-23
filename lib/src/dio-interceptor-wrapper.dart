@@ -23,8 +23,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
     if (!SuperTokens.isInitCalled) {
-      throw SuperTokensException(
-          "SuperTokens.initialise must be called before using Client");
+      handler.reject(DioError(
+        requestOptions: options,
+        type: DioErrorType.other,
+        error: SuperTokensException(
+            "SuperTokens.initialise must be called before using Client"),
+      ));
+      return;
     }
 
     if (!Utils.shouldDoInterceptions(options.uri.toString(),
@@ -138,7 +143,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
           }
           if (shouldRetry.exception != null) {
             var data = response.data;
-            throw SuperTokensException(shouldRetry.exception!.message);
+            handler.reject(
+              DioError(
+                  requestOptions: response.requestOptions,
+                  error: SuperTokensException(shouldRetry.exception!.message),
+                  type: DioErrorType.other),
+            );
+            return;
           } else {
             _refreshAPILock.release();
             return handler.next(response);
@@ -157,6 +168,10 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         _refreshAPILock.release();
         return handler.next(response);
       }
+    } on DioError catch (e)  {
+      handler.reject(e);
+    } catch(e) {
+      handler.reject(DioError(requestOptions: response.requestOptions, type: DioErrorType.other, error: e),);
     } finally {
       String? idRefreshToken = await IdRefreshToken.getToken();
       if (idRefreshToken == null) {
