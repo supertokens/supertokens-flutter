@@ -1,5 +1,8 @@
-JAVA_HOME=/Users/distiller/jdk-15.0.1.jdk/Contents/Home/
+update-alternatives --set java $(update-alternatives --list java | grep jdk-15)
+update-alternatives --set javac $(update-alternatives --list javac | grep jdk-15)
+JAVA_HOME=/usr/java/jdk-15.0.1
 export JAVA_HOME
+
 java -version
 
 if [ -z "$SUPERTOKENS_API_KEY" ]; then
