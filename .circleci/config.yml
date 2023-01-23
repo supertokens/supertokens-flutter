@@ -16,7 +16,11 @@ jobs:
       - run: cp CONTRIBUTING.md temp/CONTRIBUTING.md
       - run: cp -r lib/ temp/lib/
       - run: cp pubspec.yaml temp/pubspec.yaml
+      - run:
+          name: Setup pub.dev login
+          command: cd .circleci && ./setupPubLogin.sh
       - run: cd temp && flutter pub publish
+      - run: rm ~/.pub-cache/credentials.json
   test:
     docker: 
       - image: rishabhpoddar/supertokens_flutter_sdk_testing
