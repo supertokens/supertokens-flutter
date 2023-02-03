@@ -1,21 +1,17 @@
 import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/http.dart' as http;
 import 'package:supertokens_flutter/src/anti-csrf.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
-import 'package:supertokens_flutter/src/utilities.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 import 'test-utils.dart';
 
 void main() {
   String apiBasePath = SuperTokensTestUtils.baseUrl;
-  
+
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     return SuperTokensTestUtils.beforeAllTest();
@@ -26,7 +22,7 @@ void main() {
     SuperTokensTestUtils.beforeEachTest();
     SuperTokens.isInitCalled = false;
     await AntiCSRF.removeToken();
-    await IdRefreshToken.removeToken();
+    await FrontToken.removeToken();
     return Future.delayed(Duration(seconds: 1));
   });
   tearDownAll(() => SuperTokensTestUtils.afterAllTest());
@@ -72,23 +68,14 @@ void main() {
     if (resp.statusCode != 200) {
       fail("Login request gave ${resp.statusCode}");
     } else {
-      String? idRefreshToken = await IdRefreshToken.getToken();
-      if (idRefreshToken == null) fail("id-refresh-token was null");
       // sleep(Duration(seconds: 5));
       await Future.delayed(Duration(seconds: 5), () {});
       Uri userInfoURL = Uri.parse("$apiBasePath/");
       // sleep(Duration(seconds: 5));
       await Future.delayed(Duration(seconds: 5), () {});
       var userInfoResp = await http.get(userInfoURL);
-      if (userInfoResp.statusCode != 200)
+      if (userInfoResp.statusCode != 200) {
         fail("API responded with staus ${userInfoResp.statusCode}");
-      else {
-        String? idRefreshAfter = await IdRefreshToken.getToken();
-        if (idRefreshAfter == null)
-          fail("id-refresh-token after userInfo was null");
-        // ! following message seems incorrect
-        else if (idRefreshAfter == idRefreshToken)
-          fail("id before and after are the same!");
       }
     }
     Uri refreshCustomHeader = Uri.parse("$apiBasePath/refreshHeader");
@@ -96,40 +83,6 @@ void main() {
     if (refreshResponse.statusCode != 200) fail("Refresh Request failed");
     var respJson = jsonDecode(refreshResponse.body);
     if (respJson["value"] != "custom-value") fail("Header not sent");
-  });
-
-// while logged in, test that APIs that there is proper change in id refresh stored in storage
-  test("Test id-refresh-token change", () async {
-    String failureMessage = "";
-    await SuperTokensTestUtils.startST(validity: 3);
-
-    try {
-      SuperTokens.init(apiDomain: apiBasePath);
-    } catch (e) {
-      failureMessage = "init failed";
-    }
-    Request req = SuperTokensTestUtils.getLoginRequest();
-    StreamedResponse streamedResp;
-    try {
-      streamedResp = await http.send(req);
-    } catch (e) {
-      fail("Login request failed");
-    }
-    var resp = await Response.fromStream(streamedResp);
-    if (resp.statusCode != 200) {
-      fail("Login API failed");
-    }
-    String? idBefore = await IdRefreshToken.getToken();
-    if (idBefore == null) fail("id-refresh-token is null");
-    // sleep(Duration(seconds: 5));
-    await Future.delayed(Duration(seconds: 5), () {});
-    Uri userInfoUrl = Uri.parse("$apiBasePath/");
-    var userInfoResp = await http.get(userInfoUrl);
-    if (userInfoResp.statusCode != 200)
-      fail("UserInfo API returned ${userInfoResp.statusCode} ");
-    String? idAfter = await IdRefreshToken.getToken();
-    if (idAfter == null) fail("id-refresh-token is null after response");
-    if (idAfter == idBefore) fail("id before and id after are same!");
   });
 
   test("Test to check if request can be made without Supertokens.init",
@@ -143,7 +96,7 @@ void main() {
         fail("Login API failed");
       }
     } catch (e) {}
-    assert(await IdRefreshToken.getToken() == null);
+    assert(await FrontToken.getToken() == null);
   });
 
   test('More than one calls to init works', () async {
@@ -191,10 +144,14 @@ void main() {
     await Future.delayed(Duration(seconds: 5), () {});
     Uri userInfoUrl = Uri.parse("$apiBasePath/");
     var userInfoResp = await http.get(userInfoUrl);
-    if (userInfoResp.statusCode != 200) failed = true;
+    if (userInfoResp.statusCode != 200) {
+      failed = true;
+    }
 
     int counter = await SuperTokensTestUtils.refreshTokenCounter();
-    if (counter != 1) failed = true;
+    if (counter != 1) {
+      failed = true;
+    }
 
     assert(!failed);
   });

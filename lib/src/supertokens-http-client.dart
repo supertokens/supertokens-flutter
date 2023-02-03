@@ -5,9 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:mutex/mutex.dart';
 import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/cookie-store.dart';
-import 'package:supertokens_flutter/src/errors.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/src/version.dart';
 import 'package:supertokens_flutter/supertokens.dart';
@@ -64,116 +62,118 @@ class Client extends http.BaseClient {
     try {
       while (true) {
         await _refreshAPILock.acquireRead();
-        String? preRequestIdRefreshToken;
+        // http package does not allow retries with the same request object, so we clone the request when making the network call
+        http.BaseRequest copiedRequest;
+        LocalSessionState preRequestLocalSessionState;
         http.StreamedResponse response;
         try {
-          preRequestIdRefreshToken = await IdRefreshToken.getToken();
-          String? antiCSRFToken =
-              await AntiCSRF.getToken(preRequestIdRefreshToken);
+          copiedRequest = SuperTokensUtils.copyRequest(request);
+          preRequestLocalSessionState =
+              await SuperTokensUtils.getLocalSessionState();
+          String? antiCSRFToken = await AntiCSRF.getToken(
+              preRequestLocalSessionState.lastAccessTokenUpdate);
 
           if (antiCSRFToken != null) {
-            request.headers[antiCSRFHeaderKey] = antiCSRFToken;
+            copiedRequest.headers[antiCSRFHeaderKey] = antiCSRFToken;
           }
 
           // Add cookies to request headers
           String? newCookiesToAdd = await Client.cookieStore
-              ?.getCookieHeaderStringForRequest(request.url);
+              ?.getCookieHeaderStringForRequest(copiedRequest.url);
           String? existingCookieHeader =
-              request.headers[HttpHeaders.cookieHeader];
+              copiedRequest.headers[HttpHeaders.cookieHeader];
 
           // If the request already has a "cookie" header, combine it with persistent cookies
           if (existingCookieHeader != null) {
-            request.headers[HttpHeaders.cookieHeader] =
+            copiedRequest.headers[HttpHeaders.cookieHeader] =
                 "$existingCookieHeader;${newCookiesToAdd ?? ""}";
           } else {
-            request.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
+            copiedRequest.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
           }
 
-          request.headers.addAll({'st-auth-mode': 'cookie'});
+          copiedRequest.headers.addAll({'st-auth-mode': 'cookie'});
 
           // http package does not allow retries with the same request object, so we clone the request when making the network call
           response =
-              await _innerClient.send(SuperTokensUtils.copyRequest(request));
+              await _innerClient.send(copiedRequest);
+          await saveTokensFromHeaders(response);
+          String? frontTokenInHeaders = response.headers[frontTokenHeaderKey];
+          SuperTokensUtils.fireSessionUpdateEventsIfNecessary(
+            wasLoggedIn: preRequestLocalSessionState.status ==
+                LocalSessionStateStatus.EXISTS,
+            status: response.statusCode,
+            frontTokenFromResponse: frontTokenInHeaders,
+          );
 
           // Save cookies from the response
           String? setCookieFromResponse =
               response.headers[HttpHeaders.setCookieHeader];
           await Client.cookieStore
-              ?.saveFromSetCookieHeader(request.url, setCookieFromResponse);
-
-          String? idRefreshTokenFromResponse =
-              response.headers[idRefreshHeaderKey];
-          if (idRefreshTokenFromResponse != null) {
-            await IdRefreshToken.setToken(idRefreshTokenFromResponse);
-          }
-
-          String? frontTokenFromResponse =
-              response.headers[frontTokenHeaderKey];
-          if (frontTokenFromResponse != null) {
-            await FrontToken.setToken(frontTokenFromResponse);
-          }
+              ?.saveFromSetCookieHeader(copiedRequest.url, setCookieFromResponse);
         } finally {
           _refreshAPILock.release();
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
           UnauthorisedResponse shouldRetry =
-              await onUnauthorisedResponse(preRequestIdRefreshToken);
+              await onUnauthorisedResponse(preRequestLocalSessionState);
           if (shouldRetry.status == UnauthorisedStatus.RETRY) {
+            
+            // Here we use the original request because it wont contain any of the modifications we make
             send(request);
           } else {
-            // TODO: handle exception
-            if (await IdRefreshToken.getToken() == null) {
-              AntiCSRF.removeToken();
-              FrontToken.removeToken();
-            }
             if (shouldRetry.exception != null) {
-              var respObject = await http.Response.fromStream(response);
-              var data = respObject.body;
               throw SuperTokensException(shouldRetry.exception!.message);
             } else
               return response;
           }
         } else {
-          String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
-          if (antiCSRFFromResponse != null) {
-            String? postRequestIdRefresh = await IdRefreshToken.getToken();
-            await AntiCSRF.setToken(
-              antiCSRFFromResponse,
-              postRequestIdRefresh,
-            );
-          }
           return response;
         }
       }
     } finally {
-      String? idRefreshToken = await IdRefreshToken.getToken();
-      if (idRefreshToken == null) {
+      LocalSessionState localSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+      if (localSessionState.status == LocalSessionStateStatus.NOT_EXISTS) {
         await AntiCSRF.removeToken();
         await FrontToken.removeToken();
       }
     }
   }
 
-  static Future onUnauthorisedResponse(String? preRequestIdRefresh) async {
+  static Future<UnauthorisedResponse> onUnauthorisedResponse(
+      LocalSessionState preRequestLocalSessionState) async {
     try {
       await _refreshAPILock.acquireWrite();
 
-      String? postLockIdRefresh = await IdRefreshToken.getToken();
-      if (postLockIdRefresh == null) {
+      LocalSessionState postLockLocalSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+      if (postLockLocalSessionState.status ==
+          LocalSessionStateStatus.NOT_EXISTS) {
         SuperTokens.config.eventHandler(Eventype.UNAUTHORISED);
         return UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED);
       }
-      if (postLockIdRefresh != preRequestIdRefresh) {
+      if (postLockLocalSessionState.status !=
+              preRequestLocalSessionState.status ||
+          (postLockLocalSessionState.status == LocalSessionStateStatus.EXISTS &&
+              preRequestLocalSessionState.status ==
+                  LocalSessionStateStatus.EXISTS &&
+              postLockLocalSessionState.lastAccessTokenUpdate !=
+                  preRequestLocalSessionState.lastAccessTokenUpdate)) {
         return UnauthorisedResponse(status: UnauthorisedStatus.RETRY);
       }
       Uri refreshUrl = Uri.parse(SuperTokens.refreshTokenUrl);
       http.Request refreshReq = http.Request('POST', refreshUrl);
 
-      String? antiCSRFToken = await AntiCSRF.getToken(preRequestIdRefresh);
-      if (antiCSRFToken != null) {
-        refreshReq.headers[antiCSRFHeaderKey] = antiCSRFToken;
+      if (preRequestLocalSessionState.status ==
+          LocalSessionStateStatus.EXISTS) {
+        String? antiCSRFToken = await AntiCSRF.getToken(
+            preRequestLocalSessionState.lastAccessTokenUpdate);
+        if (antiCSRFToken != null) {
+          refreshReq.headers[antiCSRFHeaderKey] = antiCSRFToken;
+        }
       }
+
       refreshReq.headers['rid'] = SuperTokens.rid;
       refreshReq.headers['fdi-version'] = Version.supported_fdi.join(',');
       // Add cookies to request headers
@@ -184,30 +184,29 @@ class Client extends http.BaseClient {
       refreshReq =
           SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
       var resp = await refreshReq.send();
+      await saveTokensFromHeaders(resp);
       http.Response response = await http.Response.fromStream(resp);
-      Map<String, String> headerFeilds = response.headers;
 
       // Save cookies from the response
       String? setCookieFromResponse =
           response.headers[HttpHeaders.setCookieHeader];
       await Client.cookieStore
           ?.saveFromSetCookieHeader(refreshReq.url, setCookieFromResponse);
-      bool removeIdRefreshToken = true;
-      bool removeFrontToken = true;
-      if (headerFeilds.containsKey(idRefreshHeaderKey)) {
-        IdRefreshToken.setToken(headerFeilds[idRefreshHeaderKey] as String);
-        removeIdRefreshToken = false;
+
+      bool isUnauthorised =
+          response.statusCode == SuperTokens.config.sessionExpiredStatusCode;
+
+      String? frontTokenInHeaders = response.headers[frontTokenHeaderKey];
+      if (isUnauthorised && frontTokenInHeaders == null) {
+        await FrontToken.setItem("remove");
       }
-      if (headerFeilds.containsKey(frontTokenHeaderKey)) {
-        FrontToken.setToken(headerFeilds[frontTokenHeaderKey] as String);
-        removeFrontToken = false;
-      }
-      if (response.statusCode == SuperTokens.config.sessionExpiredStatusCode &&
-          removeIdRefreshToken &&
-          removeFrontToken) {
-        IdRefreshToken.setToken('remove');
-        FrontToken.removeToken();
-      }
+
+      SuperTokensUtils.fireSessionUpdateEventsIfNecessary(
+        wasLoggedIn: preRequestLocalSessionState.status ==
+            LocalSessionStateStatus.EXISTS,
+        status: response.statusCode,
+        frontTokenFromResponse: frontTokenInHeaders,
+      );
 
       if (response.statusCode >= 300) {
         return UnauthorisedResponse(
@@ -219,19 +218,14 @@ class Client extends http.BaseClient {
       SuperTokens.config
           .postAPIHook(APIAction.REFRESH_TOKEN, refreshReq, response);
 
-      String? idRefreshToken = await IdRefreshToken.getToken();
-      String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
-      if (antiCSRFFromResponse != null) {
-        AntiCSRF.setToken(antiCSRFFromResponse, idRefreshToken);
-      }
-      String? frontTokenFromResponse = response.headers[frontTokenHeaderKey];
-      if (frontTokenFromResponse != null) {
-        FrontToken.setToken(frontTokenFromResponse);
-      }
-
-      if (idRefreshToken == null) {
-        AntiCSRF.removeToken();
-        FrontToken.removeToken();
+      if ((await SuperTokensUtils.getLocalSessionState()).status ==
+          LocalSessionStateStatus.NOT_EXISTS) {
+        // The execution should never come here.. but just in case.
+        // removed by server. So we logout
+        // we do not send "UNAUTHORISED" event here because
+        // this is a result of the refresh API returning a session expiry, which
+        // means that the frontend did not know for sure that the session existed
+        // in the first place.
         return UnauthorisedResponse(status: UnauthorisedStatus.SESSION_EXPIRED);
       }
 
@@ -242,7 +236,33 @@ class Client extends http.BaseClient {
           status: UnauthorisedStatus.API_ERROR,
           error: SuperTokensException("Some unknown error occured"));
     } finally {
+      LocalSessionState localSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+
+      if (localSessionState.status == LocalSessionStateStatus.NOT_EXISTS) {
+        await FrontToken.removeToken();
+        await AntiCSRF.removeToken();
+      }
+
       _refreshAPILock.release();
+    }
+  }
+
+  static Future<void> saveTokensFromHeaders(
+      http.StreamedResponse response) async {
+    String? frontTokenFromResponse = response.headers[frontTokenHeaderKey];
+    if (frontTokenFromResponse != null) {
+      await FrontToken.setItem(frontTokenFromResponse);
+    }
+
+    String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
+    if (antiCSRFFromResponse != null) {
+      LocalSessionState localSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+      await AntiCSRF.setToken(
+        antiCSRFFromResponse,
+        localSessionState.lastAccessTokenUpdate,
+      );
     }
   }
 }

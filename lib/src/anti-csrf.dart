@@ -2,11 +2,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _AntiCSRFInfo {
   String? antiCSRF;
-  String? idRefreshToken;
+  String? associatedAccessTokenUpdate;
 
-  _AntiCSRFInfo({String? antiCSRFToken, String? associatedIdRefreshToken}) {
+  _AntiCSRFInfo({String? antiCSRFToken, String? associatedAccessTokenUpdate}) {
     this.antiCSRF = antiCSRFToken;
-    this.idRefreshToken = associatedIdRefreshToken;
+    this.associatedAccessTokenUpdate = associatedAccessTokenUpdate;
   }
 }
 
@@ -14,8 +14,8 @@ class AntiCSRF {
   static _AntiCSRFInfo? _antiCSRFInfo;
   static String _sharedPreferencesKey = "supertokens-flutter-anti-csrf";
 
-  static Future<String?> getToken(String? associatedIdRefreshToken) async {
-    if (associatedIdRefreshToken == null) {
+  static Future<String?> getToken(String? associatedAccessTokenUpdate) async {
+    if (associatedAccessTokenUpdate == null) {
       AntiCSRF._antiCSRFInfo = null;
       return null;
     }
@@ -30,19 +30,20 @@ class AntiCSRF {
 
       AntiCSRF._antiCSRFInfo = _AntiCSRFInfo(
           antiCSRFToken: antiCSRFToken,
-          associatedIdRefreshToken: associatedIdRefreshToken);
-    } else if (AntiCSRF._antiCSRFInfo?.idRefreshToken != null &&
-        AntiCSRF._antiCSRFInfo?.idRefreshToken != associatedIdRefreshToken) {
+          associatedAccessTokenUpdate: associatedAccessTokenUpdate);
+    } else if (AntiCSRF._antiCSRFInfo?.associatedAccessTokenUpdate != null &&
+        AntiCSRF._antiCSRFInfo?.associatedAccessTokenUpdate !=
+            associatedAccessTokenUpdate) {
       AntiCSRF._antiCSRFInfo = null;
-      return AntiCSRF.getToken(associatedIdRefreshToken);
+      return AntiCSRF.getToken(associatedAccessTokenUpdate);
     }
 
     return AntiCSRF._antiCSRFInfo?.antiCSRF;
   }
 
   static Future<void> setToken(
-      String antiCSRFToken, String? associatedIdRefreshToken) async {
-    if (associatedIdRefreshToken == null) {
+      String antiCSRFToken, String? associatedAccessTokenUpdate) async {
+    if (associatedAccessTokenUpdate == null) {
       AntiCSRF._antiCSRFInfo = null;
       return;
     }
@@ -53,7 +54,7 @@ class AntiCSRF {
 
     AntiCSRF._antiCSRFInfo = _AntiCSRFInfo(
         antiCSRFToken: antiCSRFToken,
-        associatedIdRefreshToken: associatedIdRefreshToken);
+        associatedAccessTokenUpdate: associatedAccessTokenUpdate);
   }
 
   static Future<void> removeToken() async {

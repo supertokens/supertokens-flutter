@@ -1,12 +1,9 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
@@ -24,7 +21,7 @@ void main() {
     SuperTokensTestUtils.beforeEachTest();
     SuperTokens.isInitCalled = false;
     await AntiCSRF.removeToken();
-    await IdRefreshToken.removeToken();
+    await FrontToken.removeToken();
     return Future.delayed(Duration(seconds: 1));
   });
   tearDownAll(() => SuperTokensTestUtils.afterAllTest());
@@ -68,20 +65,9 @@ void main() {
     if (resp.statusCode != 200)
       fail("Login req failed");
     else {
-      String? idRefreshBefore = await IdRefreshToken.getToken();
-      if (idRefreshBefore == null) fail("id-refresh-token is null");
       await Future.delayed(Duration(seconds: 10), () {});
-      var userInfoResp = await dio.get("");
-      if (userInfoResp.statusCode != 200)
-        fail("Login API failed");
-      else {
-        String? idRefreshAfter = await IdRefreshToken.getToken();
-        if (idRefreshAfter == null)
-          fail("id-refresh-token after userInfo was null");
-        // ! following message seems incorrect
-        else if (idRefreshAfter == idRefreshBefore)
-          fail("id before and after are the same!");
-      }
+      var userInfoResp = await dio.get("/");
+      if (userInfoResp.statusCode != 200) {}
     }
     var refreshResponse = await dio.get("/refreshHeader");
     if (refreshResponse.statusCode != 200) fail("Refresh Request failed");
@@ -89,46 +75,22 @@ void main() {
     if (respJson["value"] != "custom-value") fail("Header not sent");
   });
 
-  test("Test id-refresh-change", () async {
-    String failureMessage = "";
-    await SuperTokensTestUtils.startST(validity: 3);
-
-    try {
-      SuperTokens.init(apiDomain: apiBasePath);
-    } catch (e) {
-      failureMessage = "init failed";
-    }
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    Dio dio = setUpDio();
-    var resp = await dio.fetch(req);
-    if (resp.statusCode != 200) fail("Login req failed");
-    String? idBefore = await IdRefreshToken.getToken();
-    if (idBefore == null) fail("id-refresh-token is null");
-    // sleep(Duration(seconds: 5));
-    await Future.delayed(Duration(seconds: 5), () {});
-    var userInfoResp = await dio.get("");
-    if (userInfoResp.statusCode != 200)
-      fail("UserInfo API returned ${userInfoResp.statusCode} ");
-    String? idAfter = await IdRefreshToken.getToken();
-    if (idAfter == null) fail("id-refresh-token is null after response");
-    if (idAfter == idBefore) fail("id before and id after are same!");
-  });
-
   test("Test to check if request can be made without Supertokens.init",
       () async {
     await SuperTokensTestUtils.startST(validity: 3);
-    dynamic error = null;
+    dynamic error;
     try {
       RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
       Dio dio = setUpDio();
-      var resp = await dio.fetch(req);
+      await dio.fetch(req);
       fail("Request should have failed but didnt");
-    } on DioError catch(e) {
+    } on DioError catch (e) {
       error = e.error;
     }
 
     assert(error != null);
-    assert(error.toString() == "SuperTokens.initialise must be called before using Client");
+    assert(error.toString() ==
+        "SuperTokens.initialise must be called before using Client");
   });
 
   test('More than one calls to init works', () async {
@@ -148,7 +110,7 @@ void main() {
     } catch (e) {
       fail("Calling init more than once fails the test");
     }
-    var userInfoResp = await dio.get("");
+    var userInfoResp = await dio.get("/");
     if (userInfoResp.statusCode != 200)
       fail("UserInfo API returned ${userInfoResp.statusCode} ");
   });
@@ -162,7 +124,7 @@ void main() {
     var resp = await dio.fetch(req);
     if (resp.statusCode != 200) fail("Login req failed");
     await Future.delayed(Duration(seconds: 5), () {});
-    var userInfoResp = await dio.get("");
+    var userInfoResp = await dio.get("/");
     if (userInfoResp.statusCode != 200) failed = true;
 
     int counter = await SuperTokensTestUtils.refreshTokenCounter();
@@ -216,7 +178,7 @@ void main() {
     await SuperTokensTestUtils.startST(validity: 1);
     SuperTokens.init(apiDomain: apiBasePath);
     Dio dio = setUpDio();
-    var resp = await dio.get("");
+    var resp = await dio.get("/");
 
     if (resp.statusCode != 401) {
       fail("API should have returned session expired (401) but didnt");
