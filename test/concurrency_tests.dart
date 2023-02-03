@@ -1,21 +1,16 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/http.dart' as http;
 import 'package:supertokens_flutter/src/anti-csrf.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
-import 'package:supertokens_flutter/src/utilities.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 import 'test-utils.dart';
 
 void main() {
   String apiBasePath = SuperTokensTestUtils.baseUrl;
-  
+
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     return SuperTokensTestUtils.beforeAllTest();
@@ -26,7 +21,7 @@ void main() {
     SuperTokensTestUtils.beforeEachTest();
     SuperTokens.isInitCalled = false;
     await AntiCSRF.removeToken();
-    await IdRefreshToken.removeToken();
+    await FrontToken.removeToken();
     return Future.delayed(Duration(seconds: 1));
   });
   tearDownAll(() => SuperTokensTestUtils.afterAllTest());

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:supertokens_flutter/src/errors.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:http/http.dart' as http;
 import 'package:supertokens_flutter/src/supertokens-http-client.dart';
@@ -60,8 +59,32 @@ class SuperTokens {
 
   /// Use this function to verify if a users session is valid
   static Future<bool> doesSessionExist() async {
-    String? idRefreshToken = await IdRefreshToken.getToken();
-    return idRefreshToken != null;
+    Map<String, dynamic>? tokenInfo = await FrontToken.getToken();
+
+    if (tokenInfo == null) {
+      return false;
+    }
+
+    int now = DateTime.now().millisecondsSinceEpoch;
+    int accessTokenExpiry = tokenInfo["ate"];
+
+    if (accessTokenExpiry != null && accessTokenExpiry < now) {
+      LocalSessionState preRequestLocalSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+
+      var resp =
+          await Client.onUnauthorisedResponse(preRequestLocalSessionState);
+
+      if (resp.error != null) {
+        // Here we dont throw the error and instead return false, because
+        // otherwise users would have to use a try catch just to call doesSessionExist
+        return false;
+      }
+
+      return resp.status == UnauthorisedStatus.RETRY;
+    }
+
+    return true;
   }
 
   static Future<void> signOut({Function(Exception?)? completionHandler}) async {
@@ -119,12 +142,13 @@ class SuperTokens {
   }
 
   static Future<bool> attemptRefreshingSession() async {
-    var preRequestIdRefreshToken = await IdRefreshToken.getToken();
+    LocalSessionState preRequestLocalSessionState =
+        await SuperTokensUtils.getLocalSessionState();
     bool shouldRetry = false;
     Exception? exception;
 
     dynamic resp =
-        await Client.onUnauthorisedResponse(preRequestIdRefreshToken);
+        await Client.onUnauthorisedResponse(preRequestLocalSessionState);
     if (resp is UnauthorisedResponse) {
       if (resp.status == UnauthorisedStatus.API_ERROR) {
         exception = resp.error as SuperTokensException;

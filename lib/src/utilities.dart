@@ -1,8 +1,23 @@
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supertokens_flutter/src/constants.dart';
+import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/normalised-url-domain.dart';
 import 'package:supertokens_flutter/src/normalised-url-path.dart';
 
 import '../supertokens.dart';
+
+enum LocalSessionStateStatus { NOT_EXISTS, EXISTS }
+
+class LocalSessionState {
+  LocalSessionStateStatus status;
+  String? lastAccessTokenUpdate;
+
+  LocalSessionState({
+    required this.status,
+    required this.lastAccessTokenUpdate,
+  });
+}
 
 class SuperTokensUtils {
   /// Returns the domain of the provided url if valid
@@ -54,6 +69,84 @@ class SuperTokensUtils {
       ..headers.addAll(request.headers);
 
     return requestCopy;
+  }
+
+  static Future<void> storeInStorage(String name, String value) async {
+    String storageKey = "st-storage-item-$name";
+    SharedPreferences instance = await SharedPreferences.getInstance();
+
+    if (value.isEmpty) {
+      await instance.remove(storageKey);
+      return;
+    }
+
+    await instance.setString(storageKey, value);
+  }
+
+  static Future<void> saveLastAccessTokenUpdate() async {
+    int now = DateTime.now().millisecondsSinceEpoch;
+
+    await storeInStorage(lastAccessTokenStorageKey, "$now");
+    await storeInStorage("sIRTFrontend", "");
+  }
+
+  static Future<String?> getFromStorage(String name) async {
+    SharedPreferences instance = await SharedPreferences.getInstance();
+    var itemInStorage = instance.getString("st-storage-item-$name");
+
+    if (itemInStorage == null) {
+      return null;
+    }
+
+    return itemInStorage;
+  }
+
+  static Future<LocalSessionState> getLocalSessionState() async {
+    var lastAccessTokenUpdate = await getFromStorage(lastAccessTokenStorageKey);
+    var frontTokenExists = await FrontToken.doesTokenExist();
+
+    if (frontTokenExists && lastAccessTokenUpdate != null) {
+      return LocalSessionState(
+          status: LocalSessionStateStatus.EXISTS,
+          lastAccessTokenUpdate: lastAccessTokenUpdate);
+    } else {
+      return LocalSessionState(
+          status: LocalSessionStateStatus.NOT_EXISTS,
+          lastAccessTokenUpdate: null);
+    }
+  }
+
+  static void fireSessionUpdateEventsIfNecessary({
+    required bool wasLoggedIn,
+    required int status,
+    required String? frontTokenFromResponse,
+  }) {
+    // In case we've received a 401 that didn't clear the session (e.g.: we've sent no session token, or we should try refreshing)
+    // then onUnauthorised will handle firing the UNAUTHORISED event if necessary
+    // In some rare cases (where we receive a 401 that also clears the session) this will fire the event twice.
+    // This may be considered a bug, but it is the existing behaviour before the rework
+    if (frontTokenFromResponse == null) {
+      return;
+    }
+
+    // if the current endpoint clears the session it'll set the front-token to remove
+    // any other update means it's created or updated.
+    bool frontTokenExistsAfter = frontTokenFromResponse != "remove";
+
+    if (wasLoggedIn) {
+      // we check for wasLoggedIn cause we don't want to fire an event
+      // unnecessarily on first app load or if the user tried
+      // to query an API that returned 401 while the user was not logged in...
+      if (!frontTokenExistsAfter) {
+        if (status == SuperTokens.config.sessionExpiredStatusCode) {
+          SuperTokens.config.eventHandler(Eventype.UNAUTHORISED);
+        } else {
+          SuperTokens.config.eventHandler(Eventype.SIGN_OUT);
+        }
+      }
+    } else if (frontTokenExistsAfter) {
+      SuperTokens.config.eventHandler(Eventype.SESSION_CREATED);
+    }
   }
 }
 

@@ -1,12 +1,9 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
@@ -24,7 +21,7 @@ void main() {
     SuperTokensTestUtils.beforeEachTest();
     SuperTokens.isInitCalled = false;
     await AntiCSRF.removeToken();
-    await IdRefreshToken.removeToken();
+    await FrontToken.removeToken();
     return Future.delayed(Duration(seconds: 1));
   });
   tearDownAll(() => SuperTokensTestUtils.afterAllTest());
@@ -43,7 +40,6 @@ void main() {
 
   test('Refresh only get called once after multiple request (Concurrency)',
       () async {
-    bool failed = false;
     await SuperTokensTestUtils.startST(validity: 10);
     List<bool> results = [];
     SuperTokens.init(apiDomain: apiBasePath);

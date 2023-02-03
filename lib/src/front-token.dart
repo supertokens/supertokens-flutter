@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:mutex/mutex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 class FrontToken {
@@ -20,7 +20,9 @@ class FrontToken {
   }
 
   static Future<String?> _getFrontToken() async {
-    if (await IdRefreshToken.getToken() == null) {
+    LocalSessionState localSessionState =
+        await SuperTokensUtils.getLocalSessionState();
+    if (localSessionState.status == LocalSessionStateStatus.NOT_EXISTS) {
       return null;
     }
     return _getFronTokenFromStorage();
@@ -40,9 +42,10 @@ class FrontToken {
       String? frontToken = await _getFrontToken();
 
       if (frontToken == null) {
-        var idRefreshToken = await IdRefreshToken.getToken();
+        LocalSessionState localSessionState =
+            await SuperTokensUtils.getLocalSessionState();
 
-        if (idRefreshToken != null) {
+        if (localSessionState.status == LocalSessionStateStatus.EXISTS) {
           _frontTokenMutex.acquire();
         } else {
           finalReturnValue = null;
@@ -91,15 +94,26 @@ class FrontToken {
     _setFrontTokenToStorage(frontToken);
   }
 
-  static Future<void> setToken(String? frontToken) async {
-    await _tokenInfoMutex.acquireWrite();
-    await _setFronToken(frontToken);
-    if (_tokenInfoMutex.isLocked) {
-      _tokenInfoMutex.release();
+  static Future<void> setItem(String frontToken) async {
+    // We update the refresh attempt info here as well, since this means that we've updated the session in some way
+    // This could be both by a refresh call or if the access token was updated in a custom endpoint
+    // By saving every time the access token has been updated, we cause an early retry if
+    // another request has failed with a 401 with the previous access token and the token still exists.
+    // Check the start and end of onUnauthorisedResponse
+    // As a side-effect we reload the anti-csrf token to check if it was changed by another tab.
+    await SuperTokensUtils.saveLastAccessTokenUpdate();
+
+    if (frontToken == "remove") {
+      await FrontToken.removeToken();
+      return;
     }
-    if (_frontTokenMutex.isLocked) {
-      _frontTokenMutex.release();
-    }
+
+    FrontToken._setFronToken(frontToken);
+  }
+
+  static Future<bool> doesTokenExist() async {
+    var frontToken = await FrontToken._getFronTokenFromStorage();
+    return frontToken != null;
   }
 
   static Future _removeTokenFromStorage() async {

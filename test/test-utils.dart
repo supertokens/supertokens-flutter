@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import "package:http/http.dart" as http;
 import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 class _MyHttpOverrides extends HttpOverrides {}
@@ -24,7 +23,6 @@ class SuperTokensTestUtils {
     String beforeEachAPIURL = "$baseUrl/beforeeach";
     FrontToken.removeToken();
     AntiCSRF.removeToken();
-    IdRefreshToken.removeToken();
     SuperTokens.isInitCalled = false;
     await _internalClient.post(Uri.parse(beforeEachAPIURL));
   }

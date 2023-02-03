@@ -7,7 +7,6 @@ import 'package:supertokens_flutter/src/constants.dart';
 import 'package:supertokens_flutter/src/cookie-store.dart';
 import 'package:supertokens_flutter/src/errors.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
-import 'package:supertokens_flutter/src/id-refresh-token.dart';
 import 'package:supertokens_flutter/src/supertokens-http-client.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
@@ -16,6 +15,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   ReadWriteMutex _refreshAPILock = ReadWriteMutex();
   final Dio client;
   late dynamic userSetCookie;
+  late LocalSessionState _preRequestLocalSessionState;
 
   SuperTokensInterceptorWrapper({required this.client});
 
@@ -51,8 +51,10 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       super.onRequest(options, handler);
     }
 
-    String? preRequestIdRefreshToken = await IdRefreshToken.getToken();
-    String? antiCSRFToken = await AntiCSRF.getToken(preRequestIdRefreshToken);
+    _preRequestLocalSessionState =
+        await SuperTokensUtils.getLocalSessionState();
+    String? antiCSRFToken = await AntiCSRF.getToken(
+        _preRequestLocalSessionState.lastAccessTokenUpdate);
 
     if (antiCSRFToken != null) {
       options.headers[antiCSRFHeaderKey] = antiCSRFToken;
@@ -94,55 +96,40 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
     _refreshAPILock.acquireWrite();
+    await saveTokensFromHeaders(response);
+    String? frontTokenFromResponse =
+        response.headers.map[frontTokenHeaderKey]?.first.toString();
+    SuperTokensUtils.fireSessionUpdateEventsIfNecessary(
+      wasLoggedIn:
+          _preRequestLocalSessionState.status == LocalSessionStateStatus.EXISTS,
+      status: response.statusCode!,
+      frontTokenFromResponse: frontTokenFromResponse,
+    );
     List<dynamic>? setCookieFromResponse =
         response.headers.map[HttpHeaders.setCookieHeader];
     setCookieFromResponse?.forEach((element) async {
       await Client.cookieStore
           ?.saveFromSetCookieHeader(response.realUri, element);
     });
-    String? idRefreshTokenFromResponse =
-        response.headers.map[idRefreshHeaderKey]?.first.toString();
-    if (idRefreshTokenFromResponse != null) {
-      await IdRefreshToken.setToken(idRefreshTokenFromResponse);
-    }
-    String? frontTokenFromResponse =
-        response.headers.map[frontTokenHeaderKey]?.first.toString();
-    if (frontTokenFromResponse != null) {
-      await FrontToken.setToken(frontTokenFromResponse);
-    }
-    String? preRequestIdRefreshToken = await IdRefreshToken.getToken();
+
     try {
       if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
         UnauthorisedResponse shouldRetry =
-            await Client.onUnauthorisedResponse(preRequestIdRefreshToken);
+            await Client.onUnauthorisedResponse(_preRequestLocalSessionState);
         if (shouldRetry.status == UnauthorisedStatus.RETRY) {
           RequestOptions requestOptions = response.requestOptions;
           requestOptions.headers[HttpHeaders.cookieHeader] = userSetCookie;
-          Response<dynamic> req = await client.fetch(requestOptions);
+          Response<dynamic> res = await client.fetch(requestOptions);
           List<dynamic>? setCookieFromResponse =
-              req.headers.map[HttpHeaders.setCookieHeader];
+              res.headers.map[HttpHeaders.setCookieHeader];
           setCookieFromResponse?.forEach((element) async {
             await Client.cookieStore
-                ?.saveFromSetCookieHeader(req.realUri, element);
+                ?.saveFromSetCookieHeader(res.realUri, element);
           });
-          String? idRefreshTokenFromResponse =
-              req.headers.map[idRefreshHeaderKey]?.first.toString();
-          if (idRefreshTokenFromResponse != null) {
-            await IdRefreshToken.setToken(idRefreshTokenFromResponse);
-          }
-          String? frontTokenFromResponse =
-              req.headers.map[frontTokenHeaderKey]?.first.toString();
-          if (frontTokenFromResponse != null) {
-            await FrontToken.setToken(frontTokenFromResponse);
-          }
-          handler.next(req);
+          await saveTokensFromHeaders(res);
+          handler.next(res);
         } else {
-          if (await IdRefreshToken.getToken() == null) {
-            AntiCSRF.removeToken();
-            FrontToken.removeToken();
-          }
           if (shouldRetry.exception != null) {
-            var data = response.data;
             handler.reject(
               DioError(
                   requestOptions: response.requestOptions,
@@ -156,28 +143,44 @@ class SuperTokensInterceptorWrapper extends Interceptor {
           }
         }
       } else {
-        String? antiCSRFFromResponse =
-            response.headers.map[antiCSRFHeaderKey]?.first.toString();
-        if (antiCSRFFromResponse != null) {
-          String? postRequestIdRefresh = await IdRefreshToken.getToken();
-          await AntiCSRF.setToken(
-            antiCSRFFromResponse,
-            postRequestIdRefresh,
-          );
-        }
         _refreshAPILock.release();
         return handler.next(response);
       }
-    } on DioError catch (e)  {
+    } on DioError catch (e) {
       handler.reject(e);
-    } catch(e) {
-      handler.reject(DioError(requestOptions: response.requestOptions, type: DioErrorType.other, error: e),);
+    } catch (e) {
+      handler.reject(
+        DioError(
+            requestOptions: response.requestOptions,
+            type: DioErrorType.other,
+            error: e),
+      );
     } finally {
-      String? idRefreshToken = await IdRefreshToken.getToken();
-      if (idRefreshToken == null) {
+      LocalSessionState localSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+      if (localSessionState.status == LocalSessionStateStatus.NOT_EXISTS) {
         await AntiCSRF.removeToken();
         await FrontToken.removeToken();
       }
+    }
+  }
+
+  Future<void> saveTokensFromHeaders(Response response) async {
+    String? frontTokenFromResponse =
+        response.headers.map[frontTokenHeaderKey]?.first.toString();
+    if (frontTokenFromResponse != null) {
+      await FrontToken.setItem(frontTokenFromResponse);
+    }
+
+    String? antiCSRFFromResponse =
+        response.headers.map[antiCSRFHeaderKey]?.first.toString();
+    if (antiCSRFFromResponse != null) {
+      LocalSessionState localSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+      await AntiCSRF.setToken(
+        antiCSRFFromResponse,
+        localSessionState.lastAccessTokenUpdate,
+      );
     }
   }
 }
