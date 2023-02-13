@@ -185,30 +185,23 @@ void main() {
     }
   });
 
-  // test("Test other other domains work without Authentication", () async {
-  //   await SuperTokensTestUtils.startST(validity: 1);
-  //   SuperTokens.init(apiDomain: apiBasePath);
-  //   Dio dio = setUpDio();
-  //   Uri fakeGetApi = Uri.parse("https://www.google.com");
-  //   var resp = await http.get(fakeGetApi);
-  //   if (resp.statusCode != 200)
-  //     fail("Unable to make Get API Request to external URL");
-  //   Request req = SuperTokensTestUtils.getLoginRequest();
-  //   StreamedResponse streamedResp;
-  //   streamedResp = await http.send(req);
-  //   var loginResp = await Response.fromStream(streamedResp);
-  //   if (loginResp.statusCode != 200) {
-  //     fail("Login failed");
-  //   }
-  //   resp = await http.get(fakeGetApi);
-  //   if (resp.statusCode != 200)
-  //     fail("Unable to make Get API Request to external URL");
-  //   // logout
-  //   Uri logoutReq = Uri.parse("$apiBasePath/logout");
-  //   var logoutResp = await http.post(logoutReq);
-  //   if (logoutResp.statusCode != 200) fail("Logout req failed");
-  //   resp = await http.get(fakeGetApi);
-  //   if (resp.statusCode != 200)
-  //     fail("Unable to make Get API Request to external URL");
-  // });
+  test("Test other other domains work without Authentication", () async {
+    await SuperTokensTestUtils.startST(validity: 1);
+    SuperTokens.init(apiDomain: apiBasePath);
+    String url = 'http://www.google.com/';
+    Dio dio = setUpDio(url: url);
+    var respGoogle1 = await dio.get('');
+    if (respGoogle1.statusCode! > 300) fail("external API did not work");
+    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
+    Dio dio2 = setUpDio();
+    var loginResp = await dio2.fetch(req);
+    if (loginResp.statusCode != 200) fail("Login req failed");
+    var respGoogle2 = await dio.get('');
+    if (respGoogle2.statusCode! > 300) fail("external API did not work");
+    // logout
+    var logoutResp = await dio2.post("/logout");
+    if (logoutResp.statusCode != 200) fail("Logout req failed");
+    var respGoogle3 = await dio.get('');
+    if (respGoogle3.statusCode! > 300) fail("external API did not work");
+  });
 }

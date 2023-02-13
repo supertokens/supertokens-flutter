@@ -31,10 +31,12 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       ));
       return;
     }
+    _preRequestLocalSessionState =
+        await SuperTokensUtils.getLocalSessionState();
 
     if (!Utils.shouldDoInterceptions(options.uri.toString(),
         SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
-      super.onRequest(options, handler);
+      return super.onRequest(options, handler);
     }
 
     if (Client.cookieStore == null) {
@@ -43,16 +45,14 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     if (SuperTokensUtils.getApiDomain(options.uri.toString()) !=
         SuperTokens.config.apiDomain) {
-      super.onRequest(options, handler);
+      return super.onRequest(options, handler);
     }
 
     if (SuperTokensUtils.getApiDomain(options.uri.toString()) ==
         SuperTokens.refreshTokenUrl) {
-      super.onRequest(options, handler);
+      return super.onRequest(options, handler);
     }
 
-    _preRequestLocalSessionState =
-        await SuperTokensUtils.getLocalSessionState();
     String? antiCSRFToken = await AntiCSRF.getToken(
         _preRequestLocalSessionState.lastAccessTokenUpdate);
 
