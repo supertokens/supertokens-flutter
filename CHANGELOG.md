@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2023-02-14
+
+- Added fix for dio Interceptors `Bad State: Future already completed` error
+
 ## [0.1.1] - 2023-02-09
 
 - Updates dependency declaration to support correct minor versions of packages
