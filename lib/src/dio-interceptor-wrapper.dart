@@ -31,28 +31,17 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       ));
       return;
     }
-    _preRequestLocalSessionState =
-        await SuperTokensUtils.getLocalSessionState();
 
-    if (!Utils.shouldDoInterceptions(options.uri.toString(),
-        SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
-      return super.onRequest(options, handler);
+    if (!shouldRunDioInterceptor(options)) {
+      return handler.next(options);
     }
 
     if (Client.cookieStore == null) {
       Client.cookieStore = SuperTokensCookieStore();
     }
 
-    if (SuperTokensUtils.getApiDomain(options.uri.toString()) !=
-        SuperTokens.config.apiDomain) {
-      return super.onRequest(options, handler);
-    }
-
-    if (SuperTokensUtils.getApiDomain(options.uri.toString()) ==
-        SuperTokens.refreshTokenUrl) {
-      return super.onRequest(options, handler);
-    }
-
+    _preRequestLocalSessionState =
+        await SuperTokensUtils.getLocalSessionState();
     String? antiCSRFToken = await AntiCSRF.getToken(
         _preRequestLocalSessionState.lastAccessTokenUpdate);
 
@@ -95,6 +84,9 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    if (!shouldRunDioInterceptor(response.requestOptions)) {
+      return handler.next(response);
+    }
     _refreshAPILock.acquireWrite();
     await saveTokensFromHeaders(response);
     String? frontTokenFromResponse =
@@ -127,7 +119,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
                 ?.saveFromSetCookieHeader(res.realUri, element);
           });
           await saveTokensFromHeaders(res);
-          handler.next(res);
+          return handler.next(res);
         } else {
           if (shouldRetry.exception != null) {
             handler.reject(
@@ -182,5 +174,24 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         localSessionState.lastAccessTokenUpdate,
       );
     }
+  }
+
+  bool shouldRunDioInterceptor(RequestOptions options) {
+    if (SuperTokensUtils.getApiDomain(options.uri.toString()) !=
+        SuperTokens.config.apiDomain) {
+      return false;
+    }
+
+    if (SuperTokensUtils.getApiDomain(options.uri.toString()) ==
+        SuperTokens.refreshTokenUrl) {
+      return false;
+    }
+
+    if (!Utils.shouldDoInterceptions(options.uri.toString(),
+        SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
+      return false;
+    }
+
+    return true;
   }
 }

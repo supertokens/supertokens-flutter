@@ -204,4 +204,6 @@ void main() {
     var respGoogle3 = await dio.get('');
     if (respGoogle3.statusCode! > 300) fail("external API did not work");
   });
+
+  // TODO: test multiple interceptors
 }
