@@ -86,7 +86,7 @@ packages:
     source: hosted
     version: "4.0.6"
   dio_http_formatter:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: dio_http_formatter
       url: "https://pub.dartlang.org"
