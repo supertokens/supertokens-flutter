@@ -20,6 +20,7 @@ dependencies:
   shared_preferences: ^2.0.0
   mutex: ^3.0.0
   dio: ^4.0.0
+  dio_http_formatter: ^2.1.0
 
 dev_dependencies:
   flutter_test:
