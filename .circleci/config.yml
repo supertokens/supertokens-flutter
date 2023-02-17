@@ -17,6 +17,18 @@ jobs:
           command: cd .circleci && ./generateConfig.sh
       - continuation/continue:
           configuration_path: .circleci/config_continue.yml
+  update-docs:
+    docker: 
+      - image: rishabhpoddar/supertokens_flutter_sdk_testing
+    environment:
+      JVM_OPTS: -Xmx3200m
+    steps:
+      - checkout
+      - run: cd ../ && git clone git@github.com:supertokens/supertokens-backend-website.git
+      - run: dart doc
+      - run: (cd .circleci && ./updateDocsInWebsite)
+      - slack/status
+
 
 workflows:
   version: 2
