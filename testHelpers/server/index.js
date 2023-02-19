@@ -336,6 +336,7 @@ app.post("/auth/session/refresh", async (req, res, next) => {
     noOfTimesRefreshAttemptedDuringTest += 1;
     verifySession()(req, res, err => {
         if (err) {
+            console.log(err);
             next(err);
         } else {
             if (req.headers["custom-header"] !== undefined) {

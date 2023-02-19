@@ -231,4 +231,137 @@ void main() {
     if (resp.statusCode != 200)
       fail("Unable to make Get API Request to external URL");
   });
+
+  test("Test that getAccessToken works correctly", () async {
+    await SuperTokensTestUtils.startST(validity: 5);
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    String? accessToken = await SuperTokens.getAccessToken();
+
+    if (accessToken != null) {
+      fail("Access token should be null but isn't");
+    }
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+    accessToken = await SuperTokens.getAccessToken();
+
+    if (accessToken == null) {
+      fail("Access token is null when it should not be");
+    }
+
+    await SuperTokens.signOut();
+
+    accessToken = await SuperTokens.getAccessToken();
+
+    if (accessToken != null) {
+      fail("Access token should be null but isn't");
+    }
+  });
+
+  test("Test that different casing for auuthorization header works fine",
+      () async {
+    await SuperTokensTestUtils.startST();
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+
+    String? accessToken = await SuperTokens.getAccessToken();
+    Uri userInfoURL = Uri.parse("$apiBasePath/");
+    var resp = await http.get(userInfoURL, headers: {
+      "Authorization": "Bearer $accessToken",
+    });
+    if (resp.statusCode != 200) {
+      fail("User info get API failed");
+    }
+
+    Uri userInfoURL2 = Uri.parse("$apiBasePath/");
+    var resp2 = await http.get(userInfoURL2, headers: {
+      "authorization": "Bearer $accessToken",
+    });
+    if (resp.statusCode != 200) {
+      fail("User info get API failed");
+    }
+  });
+
+  test("Test that manually adding expired accesstoken works normally",
+      () async {
+    await SuperTokensTestUtils.startST(validity: 3);
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+    String? accessToken = await SuperTokens.getAccessToken();
+
+    if (accessToken == null) {
+      fail("Access token is null when it should not be");
+    }
+
+    await Future.delayed(Duration(seconds: 5), () {});
+
+    Uri userInfoURL = Uri.parse("$apiBasePath/");
+    var resp = await http.get(userInfoURL, headers: {
+      "Authorization": "Bearer $accessToken",
+    });
+    if (resp.statusCode != 200) {
+      fail("User info get API failed");
+    }
+
+    int count = await SuperTokensTestUtils.refreshTokenCounter();
+    print(count);
+    if (count != 1) {
+      fail("refreshTokenCounter returned an invalid count");
+    }
+  });
+
+  test("Test that access token calls refresh correctly", () async {
+    await SuperTokensTestUtils.startST(validity: 3);
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+    String? accessToken = await SuperTokens.getAccessToken();
+
+    if (accessToken == null) {
+      fail("Access token is null when it should not be");
+    }
+
+    await Future.delayed(Duration(seconds: 5), () {});
+
+    String? newAccessToken = await SuperTokens.getAccessToken();
+
+    if (accessToken == null) {
+      fail("Access token is nil when it shouldnt be");
+    }
+
+    int count = await SuperTokensTestUtils.refreshTokenCounter();
+    if (count != 1) {
+      fail("refreshTokenCounter returned invalid count");
+    }
+
+    if (accessToken == newAccessToken) {
+      fail("Access token after refresh is same as old access token");
+    }
+  });
 }

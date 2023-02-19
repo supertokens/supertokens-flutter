@@ -189,4 +189,11 @@ class SuperTokens {
     }
     return userPayload;
   }
+
+  static Future<String?> getAccessToken() async {
+    if (await doesSessionExist()) {
+      return Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    }
+    return null;
+  }
 }

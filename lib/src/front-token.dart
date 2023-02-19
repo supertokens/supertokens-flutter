@@ -13,8 +13,9 @@ class FrontToken {
 
   static Future<String?> _getFronTokenFromStorage() async {
     if (tokenInMemory == null) {
-      FrontToken.tokenInMemory = (await SharedPreferences.getInstance())
+      String? token = (await SharedPreferences.getInstance())
           .getString(FrontToken._sharedPreferencesKey);
+      FrontToken.tokenInMemory = token;
     }
     return FrontToken.tokenInMemory;
   }

@@ -119,6 +119,9 @@ class SuperTokensUtils {
 
   static Future<LocalSessionState> getLocalSessionState() async {
     var lastAccessTokenUpdate = await getFromStorage(lastAccessTokenStorageKey);
+    // ! DO NOT REMOVE THE BELOW FOR EACH LOOP, REMOVING THIS BREAKS THRE TESTS
+    var instance = await SharedPreferences.getInstance();
+    instance.getKeys().forEach((element) {});
     var frontTokenExists = await FrontToken.doesTokenExist();
 
     if (frontTokenExists && lastAccessTokenUpdate != null) {

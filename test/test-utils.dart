@@ -33,7 +33,7 @@ class SuperTokensTestUtils {
   }
 
   static Future startST(
-      {required int validity, bool disableAntiCSRF = false}) async {
+      {int validity = 1, bool disableAntiCSRF = false}) async {
     String startSTAPIURL = "$baseUrl/startst";
     var body = jsonEncode(
         {"accessTokenValidity": validity, "enableAntiCsrf": !disableAntiCSRF});
