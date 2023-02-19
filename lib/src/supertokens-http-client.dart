@@ -71,6 +71,8 @@ class Client extends http.BaseClient {
         http.StreamedResponse response;
         try {
           copiedRequest = SuperTokensUtils.copyRequest(request);
+          copiedRequest =
+              await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
           preRequestLocalSessionState =
               await SuperTokensUtils.getLocalSessionState();
           String? antiCSRFToken = await AntiCSRF.getToken(
@@ -157,7 +159,7 @@ class Client extends http.BaseClient {
       http.BaseRequest mutableRequest) async {
     if (mutableRequest.headers.containsKey("Authorization")) {
       String authValue = mutableRequest.headers["Authorization"]!;
-      dynamic accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+      String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
 
       if (accessToken != null && authValue == "Bearer $accessToken") {
         mutableRequest.headers["Authorization"] = "";

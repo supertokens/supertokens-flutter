@@ -364,4 +364,32 @@ void main() {
       fail("Access token after refresh is same as old access token");
     }
   });
+
+  test("Test that old access token after signOut works fine", () async {
+    await SuperTokensTestUtils.startST();
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+    String? accessToken = await SuperTokens.getAccessToken();
+
+    if (accessToken == null) {
+      fail("Access token is null when it should not be");
+    }
+
+    await SuperTokens.signOut();
+
+    Uri userInfoURL = Uri.parse("$apiBasePath/");
+    var resp = await http.get(userInfoURL, headers: {
+      "Authorization": "Bearer $accessToken",
+    });
+    if (resp.statusCode != 200) {
+      fail("User info get API failed");
+    }
+  });
 }
