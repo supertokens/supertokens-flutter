@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/constants.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/normalised-url-domain.dart';
@@ -8,6 +9,21 @@ import 'package:supertokens_flutter/src/normalised-url-path.dart';
 import '../supertokens.dart';
 
 enum LocalSessionStateStatus { NOT_EXISTS, EXISTS }
+
+enum TokenType { ACCESS, REFRESH }
+
+extension TokenTypeExtension on TokenType {
+  String getStorageName() {
+    switch (this) {
+      case TokenType.ACCESS:
+        return ACCESS_TOKEN_NAME;
+      case TokenType.REFRESH:
+        return REFRESH_TOKEN_NAME;
+    }
+  }
+}
+
+enum SuperTokensTokenTransferMethod { COOKIE, HEADER }
 
 class LocalSessionState {
   LocalSessionStateStatus status;
@@ -237,31 +253,93 @@ class Utils {
 
     return true;
   }
+
+  static Future<String?> getFromStorage(String name) async {
+    SharedPreferences instance = await SharedPreferences.getInstance();
+    String? itemInStorage = instance.getString("st-storage-item-$name");
+    return itemInStorage;
+  }
+
+  static Future<String?> getTokenForHeaderAuth(TokenType tokenType) async {
+    String name = tokenType.getStorageName();
+    return await getFromStorage(name);
+  }
+
+  static Future<http.BaseRequest> setAuthorizationHeaderIfRequired(
+      http.BaseRequest mutableRequest,
+      {bool addRefreshToken = false}) async {
+    String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    if (accessToken != null && refreshToken != null) {
+      if (mutableRequest.headers["Authorization"] != null) {
+        //  no-op
+      } else {
+        String tokenToAdd = addRefreshToken ? refreshToken : accessToken;
+        mutableRequest.headers["Authorization"] = "Bearer $tokenToAdd";
+      }
+    }
+    return mutableRequest;
+  }
+
+  static void setToken(TokenType tokenType, String value) async {
+    String name = tokenType.getStorageName();
+    return await SuperTokensUtils.storeInStorage(name, value);
+  }
+
+  static Future<void> saveTokenFromHeaders(
+      http.StreamedResponse response) async {
+    Map<String, String> headers = response.headers;
+
+    if (headers[ACCESS_TOKEN_NAME] != null) {
+      setToken(TokenType.ACCESS, headers[ACCESS_TOKEN_NAME]!);
+    }
+
+    if (headers[REFRESH_TOKEN_NAME] != null) {
+      setToken(TokenType.REFRESH, headers[REFRESH_TOKEN_NAME]!);
+    }
+
+    if (headers[frontTokenHeaderKey] != null) {
+      FrontToken.setItem(headers[frontTokenHeaderKey]!);
+    }
+
+    LocalSessionState localSessionState =
+        await SuperTokensUtils.getLocalSessionState();
+
+    if (headers[antiCSRFHeaderKey] != null) {
+      AntiCSRF.setToken(
+          headers[antiCSRFHeaderKey]!, localSessionState.lastAccessTokenUpdate);
+    }
+  }
 }
 
 class NormalisedInputType {
   late String apiDomain;
   late String? apiBasePath;
   late int sessionExpiredStatusCode = 401;
-  late String? cookieDomain;
+  late String? sessionTokenBackendDomain;
+  late SuperTokensTokenTransferMethod? tokenTransferMethod;
   late String? userDefaultdSuiteName;
   late Function(Eventype) eventHandler;
   late Function(APIAction, http.Request) preAPIHook;
   late Function(APIAction, http.Request, http.Response) postAPIHook;
 
   NormalisedInputType(
-      String apiDomain,
-      String? apiBasePath,
-      int? sessionExpiredStatusCode,
-      String? cookieDomain,
-      String? userDefaultdSuiteName,
-      Function(Eventype)? eventHandler,
-      Function(APIAction, http.Request)? preAPIHook,
-      Function(APIAction, http.Request, http.Response)? postAPIHook) {
+    String apiDomain,
+    String? apiBasePath,
+    int sessionExpiredStatusCode,
+    String? sessionTokenBackendDomain,
+    SuperTokensTokenTransferMethod? tokenTransferMethod,
+    String? userDefaultdSuiteName,
+    Function(Eventype)? eventHandler,
+    http.Request Function(APIAction, http.Request)? preAPIHook,
+    Function(APIAction, http.Request, http.Response)? postAPIHook,
+  ) {
     this.apiDomain = apiDomain;
     this.apiBasePath = apiBasePath;
-    this.sessionExpiredStatusCode = sessionExpiredStatusCode ?? 401;
-    this.cookieDomain = cookieDomain;
+    this.sessionExpiredStatusCode = sessionExpiredStatusCode;
+    this.sessionTokenBackendDomain = sessionTokenBackendDomain;
+    this.tokenTransferMethod = tokenTransferMethod;
     this.userDefaultdSuiteName = userDefaultdSuiteName;
     this.eventHandler = eventHandler!;
     this.preAPIHook = preAPIHook!;
@@ -272,7 +350,8 @@ class NormalisedInputType {
     String apiDomain,
     String? apiBasePath,
     int? sessionExpiredStatusCode,
-    String? cookieDomain,
+    String? sessionTokenBackendDomain,
+    SuperTokensTokenTransferMethod? tokenTransferMethod,
     String? userDefaultdSuiteName,
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
@@ -287,14 +366,23 @@ class NormalisedInputType {
     if (sessionExpiredStatusCode != null)
       _sessionExpiredStatusCode = sessionExpiredStatusCode;
 
-    String? _cookieDomain = null;
-    if (cookieDomain != null)
-      _cookieDomain = normaliseSessionScopeOrThrowError(cookieDomain);
+    String? _sessionTokenBackendDomain = null;
+    if (sessionTokenBackendDomain != null) {
+      _sessionTokenBackendDomain =
+          normaliseSessionScopeOrThrowError(sessionTokenBackendDomain);
+    }
+
+    SuperTokensTokenTransferMethod _tokenTransferMethod =
+        SuperTokensTokenTransferMethod.HEADER;
+    if (tokenTransferMethod != null) {
+      _tokenTransferMethod = tokenTransferMethod;
+    }
 
     Function(Eventype)? _eventHandler = (_) => {};
     if (eventHandler != null) _eventHandler = eventHandler;
 
-    Function(APIAction, http.Request)? _preAPIHook = (_, request) => request;
+    http.Request Function(APIAction, http.Request)? _preAPIHook =
+        (_, request) => request;
     if (preAPIHook != null) _preAPIHook = preAPIHook;
 
     Function(APIAction, http.Request, http.Response) _postAPIHook =
@@ -305,7 +393,8 @@ class NormalisedInputType {
         _apiDOmain.value,
         _apiBasePath.value,
         _sessionExpiredStatusCode,
-        _cookieDomain,
+        _sessionTokenBackendDomain,
+        _tokenTransferMethod,
         userDefaultdSuiteName,
         _eventHandler,
         _preAPIHook,

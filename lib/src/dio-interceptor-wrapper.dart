@@ -32,8 +32,10 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       return;
     }
 
-    if (!Utils.shouldDoInterceptions(options.uri.toString(),
-        SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
+    if (!Utils.shouldDoInterceptions(
+        options.uri.toString(),
+        SuperTokens.config.apiDomain,
+        SuperTokens.config.sessionTokenBackendDomain)) {
       super.onRequest(options, handler);
     }
 
