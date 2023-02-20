@@ -33,7 +33,7 @@ workflows:
   version: 2
   tagged-build:
     jobs:
-    - publish:
+      - publish:
           requires:
             - update-docs
           context:
