@@ -6,7 +6,7 @@ orbs:
   jq: circleci/jq@2.2.0
 jobs:
   test:
-    docker: 
+    docker:
       - image: rishabhpoddar/supertokens_flutter_sdk_testing
     environment:
       JVM_OPTS: -Xmx3200m
@@ -18,7 +18,7 @@ jobs:
       - continuation/continue:
           configuration_path: .circleci/config_continue.yml
   update-docs:
-    docker: 
+    docker:
       - image: rishabhpoddar/supertokens_flutter_sdk_testing
     environment:
       JVM_OPTS: -Xmx3200m
@@ -29,11 +29,20 @@ jobs:
       - run: (cd .circleci && ./updateDocsInWebsite)
       - slack/status
 
-
 workflows:
   version: 2
   tagged-build:
     jobs:
+    - publish:
+          requires:
+            - update-docs
+          context:
+            - slack-notification
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
       - test:
           context:
             - slack-notification
