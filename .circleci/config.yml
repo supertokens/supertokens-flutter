@@ -34,8 +34,6 @@ workflows:
   tagged-build:
     jobs:
       - update-docs:
-          requires:
-            - update-docs
           context:
             - slack-notification
           filters:
