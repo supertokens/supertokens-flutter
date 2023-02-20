@@ -5,6 +5,7 @@ import 'package:supertokens_flutter/src/constants.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/normalised-url-domain.dart';
 import 'package:supertokens_flutter/src/normalised-url-path.dart';
+import 'package:dio/dio.dart' as Dio;
 
 import '../supertokens.dart';
 
@@ -306,10 +307,10 @@ class Utils {
       FrontToken.setItem(headers[frontTokenHeaderKey]!);
     }
 
-    LocalSessionState localSessionState =
-        await SuperTokensUtils.getLocalSessionState();
-
     if (headers[antiCSRFHeaderKey] != null) {
+      LocalSessionState localSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+
       AntiCSRF.setToken(
           headers[antiCSRFHeaderKey]!, localSessionState.lastAccessTokenUpdate);
     }

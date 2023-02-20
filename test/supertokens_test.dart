@@ -264,7 +264,7 @@ void main() {
     }
   });
 
-  test("Test that different casing for auuthorization header works fine",
+  test("Test that different casing for authorization header works fine",
       () async {
     await SuperTokensTestUtils.startST();
     SuperTokens.init(apiDomain: apiBasePath);
@@ -324,7 +324,6 @@ void main() {
     }
 
     int count = await SuperTokensTestUtils.refreshTokenCounter();
-    print(count);
     if (count != 1) {
       fail("refreshTokenCounter returned an invalid count");
     }
