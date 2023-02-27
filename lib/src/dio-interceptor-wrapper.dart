@@ -27,7 +27,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         requestOptions: options,
         type: DioErrorType.other,
         error: SuperTokensException(
-            "SuperTokens.initialise must be called before using Client"),
+            "SuperTokens.init must be called before using Client"),
       ));
       return;
     }
@@ -220,8 +220,8 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
 
       if (accessToken != null && authValue != "Bearer $accessToken") {
-        req.headers['Authorization'] = "";
-        req.headers['authorization'] = "";
+        req.headers.remove('Authorization');
+        req.headers.remove('authorization');
       }
     }
     return req;

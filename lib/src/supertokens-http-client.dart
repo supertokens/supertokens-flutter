@@ -162,8 +162,8 @@ class Client extends http.BaseClient {
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
 
       if (accessToken != null && authValue == "Bearer $accessToken") {
-        mutableRequest.headers["Authorization"] = "";
-        mutableRequest.headers["authorization"] = "";
+        mutableRequest.headers.remove("Authorization");
+        mutableRequest.headers.remove("authorization");
       }
     }
     return mutableRequest;
@@ -192,6 +192,9 @@ class Client extends http.BaseClient {
       }
       Uri refreshUrl = Uri.parse(SuperTokens.refreshTokenUrl);
       http.Request refreshReq = http.Request('POST', refreshUrl);
+      refreshReq = await Utils.setAuthorizationHeaderIfRequiredForRequestObject(
+          refreshReq,
+          addRefreshToken: true);
 
       if (preRequestLocalSessionState.status ==
           LocalSessionStateStatus.EXISTS) {
@@ -281,8 +284,8 @@ class Client extends http.BaseClient {
         await SuperTokensUtils.getLocalSessionState();
     if (preRequestLocalSessionState.status ==
         LocalSessionStateStatus.NOT_EXISTS) {
-      AntiCSRF.removeToken();
-      FrontToken.removeToken();
+      await AntiCSRF.removeToken();
+      await FrontToken.removeToken();
     }
   }
 }

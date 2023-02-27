@@ -192,7 +192,7 @@ class SuperTokens {
 
   static Future<String?> getAccessToken() async {
     if (await doesSessionExist()) {
-      return Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+      return await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
     }
     return null;
   }

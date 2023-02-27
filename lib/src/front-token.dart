@@ -47,13 +47,19 @@ class FrontToken {
             await SuperTokensUtils.getLocalSessionState();
 
         if (localSessionState.status == LocalSessionStateStatus.EXISTS) {
-          _frontTokenMutex.acquire();
+          await _frontTokenMutex.acquire();
         } else {
           finalReturnValue = null;
+          if (_frontTokenMutex.isLocked) {
+            _frontTokenMutex.release();
+          }
           break;
         }
       } else {
         finalReturnValue = _parseFrontToken(frontToken);
+        if (_frontTokenMutex.isLocked) {
+          _frontTokenMutex.release();
+        }
         break;
       }
     }
@@ -109,12 +115,26 @@ class FrontToken {
       return;
     }
 
-    FrontToken._setFronToken(frontToken);
+    try {
+      await _frontTokenMutex.acquire();
+      FrontToken._setFronToken(frontToken);
+    } finally {
+      if (_frontTokenMutex.isLocked) {
+        _frontTokenMutex.release();
+      }
+    }
   }
 
   static Future<bool> doesTokenExist() async {
-    var frontToken = await FrontToken._getFronTokenFromStorage();
-    return frontToken != null;
+    try {
+      await _frontTokenMutex.acquire();
+      var frontToken = await FrontToken._getFronTokenFromStorage();
+      return frontToken != null;
+    } finally {
+      if (_frontTokenMutex.isLocked) {
+        _frontTokenMutex.release();
+      }
+    }
   }
 
   static Future _removeTokenFromStorage() async {

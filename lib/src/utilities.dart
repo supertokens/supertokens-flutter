@@ -286,6 +286,23 @@ class Utils {
     return mutableRequest;
   }
 
+  static Future<http.Request> setAuthorizationHeaderIfRequiredForRequestObject(
+      http.Request mutableRequest,
+      {bool addRefreshToken = false}) async {
+    String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    if (accessToken != null && refreshToken != null) {
+      if (mutableRequest.headers["Authorization"] != null) {
+        //  no-op
+      } else {
+        String tokenToAdd = addRefreshToken ? refreshToken : accessToken;
+        mutableRequest.headers["Authorization"] = "Bearer $tokenToAdd";
+      }
+    }
+    return mutableRequest;
+  }
+
   static void setToken(TokenType tokenType, String value) async {
     String name = tokenType.getStorageName();
     return await SuperTokensUtils.storeInStorage(name, value);

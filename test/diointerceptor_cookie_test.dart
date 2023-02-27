@@ -5,6 +5,7 @@ import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 import 'test-utils.dart';
@@ -39,7 +40,9 @@ void main() {
 
   test("Test session expired without refresh call", () async {
     await SuperTokensTestUtils.startST(validity: 3);
-    SuperTokens.init(apiDomain: apiBasePath);
+    SuperTokens.init(
+        apiDomain: apiBasePath,
+        tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
     Dio dio = setUpDio();
     var resp = await dio.get("/");
     if (resp.statusCode != 401)
@@ -52,6 +55,7 @@ void main() {
     await SuperTokensTestUtils.startST(validity: 3);
     SuperTokens.init(
       apiDomain: apiBasePath,
+      tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE,
       preAPIHook: (action, req) {
         if (action == APIAction.REFRESH_TOKEN)
           req.headers.addAll({"custom-header": "custom-value"});
@@ -95,8 +99,12 @@ void main() {
   test('More than one calls to init works', () async {
     await SuperTokensTestUtils.startST(validity: 5);
     try {
-      SuperTokens.init(apiDomain: apiBasePath);
-      SuperTokens.init(apiDomain: apiBasePath);
+      SuperTokens.init(
+          apiDomain: apiBasePath,
+          tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
+      SuperTokens.init(
+          apiDomain: apiBasePath,
+          tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
     } catch (e) {
       fail("Calling init more than once fails the test");
     }
@@ -105,7 +113,9 @@ void main() {
     var resp = await dio.fetch(req);
     if (resp.statusCode != 200) fail("Login req failed");
     try {
-      SuperTokens.init(apiDomain: apiBasePath);
+      SuperTokens.init(
+          apiDomain: apiBasePath,
+          tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
     } catch (e) {
       fail("Calling init more than once fails the test");
     }
@@ -117,17 +127,15 @@ void main() {
   test("Test if refresh is called after access token expires", () async {
     await SuperTokensTestUtils.startST(validity: 3);
     bool failed = false;
-    SuperTokens.init(apiDomain: apiBasePath);
+    SuperTokens.init(
+        apiDomain: apiBasePath,
+        tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
     RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
     Dio dio = setUpDio();
-    print("pre login req");
     var resp = await dio.fetch(req);
-    print("post login req");
     if (resp.statusCode != 200) fail("Login req failed");
     await Future.delayed(Duration(seconds: 5), () {});
-    print("pre basepath req");
     var userInfoResp = await dio.get("/");
-    print("post basepath req");
     if (userInfoResp.statusCode != 200) failed = true;
 
     int counter = await SuperTokensTestUtils.refreshTokenCounter();
@@ -141,7 +149,7 @@ void main() {
   //   bool failed = false;
   //   await SuperTokensTestUtils.startST(validity: 10);
   //   List<bool> results = [];
-  //   SuperTokens.init(apiDomain: apiBasePath);
+  //   SuperTokens.init(apiDomain: apiBasePath, tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
   //   RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
   //   Dio dio = setUpDio();
   //   var resp = await dio.fetch(req);
@@ -164,7 +172,9 @@ void main() {
   test("Test does session exist after user is loggedIn", () async {
     await SuperTokensTestUtils.startST(validity: 1);
     bool sessionExist = false;
-    SuperTokens.init(apiDomain: apiBasePath);
+    SuperTokens.init(
+        apiDomain: apiBasePath,
+        tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
     RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
     Dio dio = setUpDio();
     var resp = await dio.fetch(req);
@@ -179,7 +189,9 @@ void main() {
 
   test("Test if not logged in  the  Auth API throws session expired", () async {
     await SuperTokensTestUtils.startST(validity: 1);
-    SuperTokens.init(apiDomain: apiBasePath);
+    SuperTokens.init(
+        apiDomain: apiBasePath,
+        tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
     Dio dio = setUpDio();
     var resp = await dio.get("/");
 
@@ -190,7 +202,7 @@ void main() {
 
   // test("Test other other domains work without Authentication", () async {
   //   await SuperTokensTestUtils.startST(validity: 1);
-  //   SuperTokens.init(apiDomain: apiBasePath);
+  //   SuperTokens.init(apiDomain: apiBasePath, tokenTransferMethod: SuperTokensTokenTransferMethod.COOKIE);
   //   Dio dio = setUpDio();
   //   Uri fakeGetApi = Uri.parse("https://www.google.com");
   //   var resp = await http.get(fakeGetApi);
@@ -214,144 +226,4 @@ void main() {
   //   if (resp.statusCode != 200)
   //     fail("Unable to make Get API Request to external URL");
   // });
-
-  test("Test that getAccessToken works correctly", () async {
-    await SuperTokensTestUtils.startST(validity: 5);
-    SuperTokens.init(apiDomain: apiBasePath);
-    String? accessToken = await SuperTokens.getAccessToken();
-
-    if (accessToken != null) {
-      fail("Access token should be null but isn't");
-    }
-
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    Dio dio = setUpDio();
-    var resp = await dio.fetch(req);
-    if (resp.statusCode != 200) fail("Login req failed");
-
-    accessToken = await SuperTokens.getAccessToken();
-
-    if (accessToken == null) {
-      fail("Access token is null when it should not be");
-    }
-
-    await SuperTokens.signOut();
-
-    accessToken = await SuperTokens.getAccessToken();
-
-    if (accessToken != null) {
-      fail("Access token should be null but isn't");
-    }
-  });
-
-  test("Test that different casing for autherization header works fine",
-      () async {
-    await SuperTokensTestUtils.startST();
-    SuperTokens.init(apiDomain: apiBasePath);
-
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    Dio dio = setUpDio();
-    var resp = await dio.fetch(req);
-    if (resp.statusCode != 200) fail("Login req failed");
-
-    String? accessToken = await SuperTokens.getAccessToken();
-
-    dio.options.headers['Authorization'] = "Bearer $accessToken";
-    var userInfoResp = await dio.get("/");
-    if (userInfoResp.statusCode != 200) {
-      fail("User Info API failed with `Authorization`");
-    }
-
-    dio.options.headers['Authorization'] = "";
-    dio.options.headers['authorization'] = "Bearer $accessToken";
-    var userInfoResp2 = await dio.get("");
-    if (userInfoResp2.statusCode != 200) {
-      fail("User info API failed with `authorization`");
-    }
-  });
-
-  test("Test manually adding expired accesstoken works normally", () async {
-    await SuperTokensTestUtils.startST(validity: 3);
-    SuperTokens.init(apiDomain: apiBasePath);
-
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    Dio dio = setUpDio();
-    var resp = await dio.fetch(req);
-    if (resp.statusCode != 200) fail("Login req failed");
-
-    String? accessToken = await SuperTokens.getAccessToken();
-
-    if (accessToken == null) {
-      fail("Access token is null when it should not be");
-    }
-
-    await Future.delayed(Duration(seconds: 5), () {});
-
-    dio.options.headers['Authorization'] = "Bearer $accessToken";
-    var userInfoResp = await dio.get("/");
-    if (userInfoResp.statusCode != 200) {
-      fail("User Info API failed");
-    }
-    int count = await SuperTokensTestUtils.refreshTokenCounter();
-    if (count != 1) {
-      fail("refreshTokenCounter returned an invalid count");
-    }
-  });
-
-  test("Test that accesstoken calls refresh correctly", () async {
-    await SuperTokensTestUtils.startST(validity: 3);
-    SuperTokens.init(apiDomain: apiBasePath);
-
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    Dio dio = setUpDio();
-    var resp = await dio.fetch(req);
-    if (resp.statusCode != 200) fail("Login req failed");
-
-    String? accessToken = await SuperTokens.getAccessToken();
-
-    if (accessToken == null) {
-      fail("Access token is null when it should not be");
-    }
-
-    await Future.delayed(Duration(seconds: 5), () {});
-
-    String? newAccessToken = await SuperTokens.getAccessToken();
-
-    if (accessToken == null) {
-      fail("Access token is nil when it shouldnt be");
-    }
-
-    int count = await SuperTokensTestUtils.refreshTokenCounter();
-    if (count != 1) {
-      fail("refreshTokenCounter returned invalid count");
-    }
-
-    if (accessToken == newAccessToken) {
-      fail("Access token after refresh is same as old access token");
-    }
-  });
-
-  test("Test that old access token after signOut works fine", () async {
-    await SuperTokensTestUtils.startST();
-    SuperTokens.init(apiDomain: apiBasePath);
-
-    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-    Dio dio = setUpDio();
-    var resp = await dio.fetch(req);
-    if (resp.statusCode != 200) fail("Login req failed");
-
-    String? accessToken = await SuperTokens.getAccessToken();
-
-    if (accessToken == null) {
-      fail("Access token is null when it should not be");
-    }
-
-    await SuperTokens.signOut();
-
-    dio.options.headers['Authorization'] = "Bearer $accessToken";
-    var userInfoResp = await dio.get("/");
-    if (userInfoResp.statusCode != 200) {
-      fail("User Info API failed");
-    }
-  });
 }
