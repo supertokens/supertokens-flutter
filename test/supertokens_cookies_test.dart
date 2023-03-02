@@ -73,7 +73,7 @@ void main() {
       Uri userInfoURL = Uri.parse("$apiBasePath/");
       var userInfoResp = await http.get(userInfoURL);
       if (userInfoResp.statusCode != 200) {
-        fail("API responded with staus ${userInfoResp.statusCode}");
+        fail("API responded with status ${userInfoResp.statusCode}");
       }
     }
     Uri refreshCustomHeader = Uri.parse("$apiBasePath/refreshHeader");

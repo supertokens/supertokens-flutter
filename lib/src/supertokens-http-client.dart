@@ -102,7 +102,7 @@ class Client extends http.BaseClient {
           // If the request already has a "cookie" header, combine it with persistent cookies
           if (existingCookieHeader != null) {
             copiedRequest.headers[HttpHeaders.cookieHeader] =
-                "$existingCookieHeader;${newCookiesToAdd ?? ""}";
+                _generateCookieHeader(existingCookieHeader, newCookiesToAdd);
           } else {
             copiedRequest.headers[HttpHeaders.cookieHeader] =
                 newCookiesToAdd ?? "";
@@ -287,6 +287,35 @@ class Client extends http.BaseClient {
       await AntiCSRF.removeToken();
       await FrontToken.removeToken();
     }
+  }
+
+  static Map<String, dynamic> _generateMapFromCookie(String cookie) {
+    if (cookie.isEmpty) return {};
+    List<String> entries = cookie.split(";");
+    Map<String, dynamic> map = {};
+    entries.forEach((element) {
+      List<String> keyValuePair = element.split("=");
+      if (keyValuePair.length == 2) {
+        map[keyValuePair[0]] = keyValuePair[1];
+      }
+    });
+    return map;
+  }
+
+  static String _generateCookieHeader(String? oldCookie, String? newCookie) {
+    Map<String, dynamic> existingCookieHeaderMap =
+        _generateMapFromCookie(oldCookie ?? "");
+    Map<String, dynamic> newCookiesToAddMap =
+        _generateMapFromCookie(newCookie ?? "");
+    String finalCookieHeader = "";
+    existingCookieHeaderMap.keys.forEach((element) {
+      if (newCookiesToAddMap.containsKey(element)) {
+        finalCookieHeader += "$element=${newCookiesToAddMap[element]};";
+      } else {
+        finalCookieHeader += "$element=${existingCookieHeaderMap[element]};";
+      }
+    });
+    return "${finalCookieHeader}HttpOnly;";
   }
 }
 

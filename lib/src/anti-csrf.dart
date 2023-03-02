@@ -35,7 +35,7 @@ class AntiCSRF {
         AntiCSRF._antiCSRFInfo?.associatedAccessTokenUpdate !=
             associatedAccessTokenUpdate) {
       AntiCSRF._antiCSRFInfo = null;
-      return AntiCSRF.getToken(associatedAccessTokenUpdate);
+      return await AntiCSRF.getToken(associatedAccessTokenUpdate);
     }
 
     return AntiCSRF._antiCSRFInfo?.antiCSRF;

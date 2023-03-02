@@ -312,24 +312,24 @@ class Utils {
       http.StreamedResponse response) async {
     Map<String, String> headers = response.headers;
 
-    if (headers[ACCESS_TOKEN_NAME] != null) {
-      setToken(TokenType.ACCESS, headers[ACCESS_TOKEN_NAME]!);
-    }
-
-    if (headers[REFRESH_TOKEN_NAME] != null) {
-      setToken(TokenType.REFRESH, headers[REFRESH_TOKEN_NAME]!);
-    }
-
     if (headers[frontTokenHeaderKey] != null) {
-      FrontToken.setItem(headers[frontTokenHeaderKey]!);
+      await FrontToken.setItem(headers[frontTokenHeaderKey]!);
     }
 
     if (headers[antiCSRFHeaderKey] != null) {
       LocalSessionState localSessionState =
           await SuperTokensUtils.getLocalSessionState();
 
-      AntiCSRF.setToken(
+      await AntiCSRF.setToken(
           headers[antiCSRFHeaderKey]!, localSessionState.lastAccessTokenUpdate);
+    }
+
+    if (headers[ACCESS_TOKEN_NAME] != null) {
+      setToken(TokenType.ACCESS, headers[ACCESS_TOKEN_NAME]!);
+    }
+
+    if (headers[REFRESH_TOKEN_NAME] != null) {
+      setToken(TokenType.REFRESH, headers[REFRESH_TOKEN_NAME]!);
     }
   }
 }

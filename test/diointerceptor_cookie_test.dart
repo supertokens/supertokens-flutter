@@ -93,7 +93,7 @@ void main() {
 
     assert(error != null);
     assert(error.toString() ==
-        "SuperTokens.initialise must be called before using Client");
+        "SuperTokens.init must be called before using Client");
   });
 
   test('More than one calls to init works', () async {
