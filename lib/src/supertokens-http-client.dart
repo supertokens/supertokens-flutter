@@ -83,11 +83,9 @@ class Client extends http.BaseClient {
           }
 
           SuperTokensTokenTransferMethod tokenTransferMethod =
-              SuperTokens.config.tokenTransferMethod!;
+              SuperTokens.config.tokenTransferMethod;
           copiedRequest.headers["st-auth-mode"] =
-              tokenTransferMethod == SuperTokensTokenTransferMethod.COOKIE
-                  ? "cookie"
-                  : "header";
+              tokenTransferMethod.getValue();
 
           // Adding Authorization headers
           copiedRequest =
@@ -157,7 +155,8 @@ class Client extends http.BaseClient {
 
   Future<http.BaseRequest> _removeAuthHeaderIfMatchesLocalToken(
       http.BaseRequest mutableRequest) async {
-    if (mutableRequest.headers.containsKey("Authorization")) {
+    if (mutableRequest.headers.containsKey("Authorization") ||
+        mutableRequest.headers.containsKey("authorization")) {
       String authValue = mutableRequest.headers["Authorization"]!;
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
 

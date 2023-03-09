@@ -26,6 +26,17 @@ extension TokenTypeExtension on TokenType {
 
 enum SuperTokensTokenTransferMethod { COOKIE, HEADER }
 
+extension ValueExtension on SuperTokensTokenTransferMethod {
+  String getValue() {
+    switch (this) {
+      case SuperTokensTokenTransferMethod.HEADER:
+        return "header";
+      case SuperTokensTokenTransferMethod.COOKIE:
+        return "cookie";
+    }
+  }
+}
+
 class LocalSessionState {
   LocalSessionStateStatus status;
   String? lastAccessTokenUpdate;
@@ -339,7 +350,7 @@ class NormalisedInputType {
   late String? apiBasePath;
   late int sessionExpiredStatusCode = 401;
   late String? sessionTokenBackendDomain;
-  late SuperTokensTokenTransferMethod? tokenTransferMethod;
+  late SuperTokensTokenTransferMethod tokenTransferMethod;
   late String? userDefaultdSuiteName;
   late Function(Eventype) eventHandler;
   late Function(APIAction, http.Request) preAPIHook;
@@ -350,7 +361,7 @@ class NormalisedInputType {
     String? apiBasePath,
     int sessionExpiredStatusCode,
     String? sessionTokenBackendDomain,
-    SuperTokensTokenTransferMethod? tokenTransferMethod,
+    SuperTokensTokenTransferMethod tokenTransferMethod,
     String? userDefaultdSuiteName,
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,

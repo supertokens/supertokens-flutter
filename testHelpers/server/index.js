@@ -339,7 +339,6 @@ app.post("/auth/session/refresh", async (req, res, next) => {
     console.log("refresh", req.headers);
     verifySession()(req, res, err => {
         if (err) {
-            console.log(err);
             next(err);
         } else {
             if (req.headers["custom-header"] !== undefined) {
@@ -421,7 +420,6 @@ app.use("*", async (req, res, next) => {
 app.use(errorHandler());
 
 app.use(async (err, req, res, next) => {
-    // console.log(err);
     res.send(500).send(err);
 });
 
