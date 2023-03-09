@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/http.dart' as http;
 import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 import 'test-utils.dart';
@@ -39,45 +40,46 @@ void main() {
     if (counter != 0) fail("Refresh counter returned non zero value");
   });
 
-  // test("Test custom headers for refreshAPI", () async {
-  //   await SuperTokensTestUtils.startST(validity: 3);
-  //   try {
-  //     SuperTokens.init(
-  //       apiDomain: apiBasePath,
-  //       preAPIHook: ((action, req) {
-  //         if (action == APIAction.REFRESH_TOKEN)
-  //           req.headers.addAll({"custom-header": "custom-value"});
-  //         return req;
-  //       }),
-  //     );
-  //   } catch (e) {
-  //     fail("SuperTokens init failed");
-  //   }
-  //   Request req = SuperTokensTestUtils.getLoginRequest();
-  //   StreamedResponse streamedResp;
-  //   try {
-  //     streamedResp = await http.send(req);
-  //   } catch (e) {
-  //     fail("Login request failed");
-  //   }
-  //   var resp = await Response.fromStream(streamedResp);
-  //   if (resp.statusCode != 200) {
-  //     fail("Login request gave ${resp.statusCode}");
-  //   } else {
-  //     // sleep(Duration(seconds: 5));
-  //     await Future.delayed(Duration(seconds: 5), () {});
-  //     Uri userInfoURL = Uri.parse("$apiBasePath/");
-  //     var userInfoResp = await http.get(userInfoURL);
-  //     if (userInfoResp.statusCode != 200) {
-  //       fail("API responded with staus ${userInfoResp.statusCode}");
-  //     }
-  //   }
-  //   Uri refreshCustomHeader = Uri.parse("$apiBasePath/refreshHeader");
-  //   var refreshResponse = await http.get(refreshCustomHeader);
-  //   if (refreshResponse.statusCode != 200) fail("Refresh Request failed");
-  //   var respJson = jsonDecode(refreshResponse.body);
-  //   if (respJson["value"] != "custom-value") fail("Header not sent");
-  // });
+  test("Test custom headers for refreshAPI", () async {
+    await SuperTokensTestUtils.startST(validity: 3);
+    try {
+      SuperTokens.init(
+        apiDomain: apiBasePath,
+        tokenTransferMethod: SuperTokensTokenTransferMethod.HEADER,
+        preAPIHook: ((action, req) {
+          if (action == APIAction.REFRESH_TOKEN)
+            req.headers.addAll({"custom-header": "custom-value"});
+          return req;
+        }),
+      );
+    } catch (e) {
+      fail("SuperTokens init failed");
+    }
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    try {
+      streamedResp = await http.send(req);
+    } catch (e) {
+      fail("Login request failed");
+    }
+    var resp = await Response.fromStream(streamedResp);
+    if (resp.statusCode != 200) {
+      fail("Login request gave ${resp.statusCode}");
+    } else {
+      // sleep(Duration(seconds: 5));
+      await Future.delayed(Duration(seconds: 5), () {});
+      Uri userInfoURL = Uri.parse("$apiBasePath/");
+      var userInfoResp = await http.get(userInfoURL);
+      if (userInfoResp.statusCode != 200) {
+        fail("API responded with staus ${userInfoResp.statusCode}");
+      }
+    }
+    Uri refreshCustomHeader = Uri.parse("$apiBasePath/refreshHeader");
+    var refreshResponse = await http.get(refreshCustomHeader);
+    if (refreshResponse.statusCode != 200) fail("Refresh Request failed");
+    var respJson = jsonDecode(refreshResponse.body);
+    if (respJson["value"] != "custom-value") fail("Header not sent");
+  });
 
   test("Test to check if request can be made without Supertokens.init",
       () async {

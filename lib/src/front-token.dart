@@ -117,7 +117,7 @@ class FrontToken {
 
     try {
       await _frontTokenMutex.acquire();
-      FrontToken._setFronToken(frontToken);
+      await FrontToken._setFronToken(frontToken);
     } finally {
       if (_frontTokenMutex.isLocked) {
         _frontTokenMutex.release();

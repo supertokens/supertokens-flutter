@@ -66,10 +66,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     SuperTokensTokenTransferMethod tokenTransferMethod =
         SuperTokens.config.tokenTransferMethod!;
-    options.headers["st-auth-mode"] =
-        tokenTransferMethod == SuperTokensTokenTransferMethod.COOKIE
-            ? 'cookie'
-            : 'header';
+    options.headers["st-auth-mode"] = tokenTransferMethod.getValue();
 
     options = await _setAuthorizationHeaderIfRequired(options);
 
@@ -215,7 +212,8 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
   Future<RequestOptions> _removeAuthHeaderIfMatchesLocalToken(
       RequestOptions req) async {
-    if (req.headers.containsKey("Authorization")) {
+    if (req.headers.containsKey("Authorization") ||
+        req.headers.containsKey("authorization")) {
       String authValue = req.headers['Authorization'];
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
 

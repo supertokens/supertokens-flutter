@@ -120,14 +120,10 @@ void main() {
     SuperTokens.init(apiDomain: apiBasePath);
     RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
     Dio dio = setUpDio();
-    print("pre login req");
     var resp = await dio.fetch(req);
-    print("post login req");
     if (resp.statusCode != 200) fail("Login req failed");
     await Future.delayed(Duration(seconds: 5), () {});
-    print("pre basepath req");
     var userInfoResp = await dio.get("/");
-    print("post basepath req");
     if (userInfoResp.statusCode != 200) failed = true;
 
     int counter = await SuperTokensTestUtils.refreshTokenCounter();
