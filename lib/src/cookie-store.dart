@@ -215,12 +215,15 @@ class SuperTokensCookieStore {
   /// Expired cookies are not saved.
   Future<void> saveFromSetCookieHeader(Uri uri, String? setCookieHeader) async {
     if (setCookieHeader != null) {
-      List<String> setCookiesStringList =
-          setCookieHeader.split(RegExp(r',(?=[^ ])'));
-      List<Cookie> setCookiesList = setCookiesStringList
-          .map((e) => Cookie.fromSetCookieValue(e))
-          .toList();
-      await saveFromResponse(uri, setCookiesList);
+      await saveFromResponse(uri, getCookieListFromHeader(setCookieHeader));
     }
+  }
+
+  static List<Cookie> getCookieListFromHeader(String setCookieHeader) {
+    List<String> setCookiesStringList =
+        setCookieHeader.split(RegExp(r',(?=[^ ])'));
+    List<Cookie> setCookiesList =
+        setCookiesStringList.map((e) => Cookie.fromSetCookieValue(e)).toList();
+    return setCookiesList;
   }
 }

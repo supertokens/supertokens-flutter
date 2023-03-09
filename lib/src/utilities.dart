@@ -362,7 +362,6 @@ class NormalisedInputType {
     int sessionExpiredStatusCode,
     String? sessionTokenBackendDomain,
     SuperTokensTokenTransferMethod tokenTransferMethod,
-    String? userDefaultSuiteName,
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
@@ -372,7 +371,6 @@ class NormalisedInputType {
     this.sessionExpiredStatusCode = sessionExpiredStatusCode;
     this.sessionTokenBackendDomain = sessionTokenBackendDomain;
     this.tokenTransferMethod = tokenTransferMethod;
-    this.userDefaultSuiteName = userDefaultSuiteName;
     this.eventHandler = eventHandler!;
     this.preAPIHook = preAPIHook!;
     this.postAPIHook = postAPIHook!;
@@ -384,7 +382,6 @@ class NormalisedInputType {
     int? sessionExpiredStatusCode,
     String? sessionTokenBackendDomain,
     SuperTokensTokenTransferMethod? tokenTransferMethod,
-    String? userDefaultSuiteName,
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
@@ -427,7 +424,6 @@ class NormalisedInputType {
         _sessionExpiredStatusCode,
         _sessionTokenBackendDomain,
         _tokenTransferMethod,
-        userDefaultSuiteName,
         _eventHandler,
         _preAPIHook,
         _postAPIHook);

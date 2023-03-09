@@ -36,7 +36,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         options.uri.toString(),
         SuperTokens.config.apiDomain,
         SuperTokens.config.sessionTokenBackendDomain)) {
-      super.onRequest(options, handler);
+      return super.onRequest(options, handler);
     }
 
     if (Client.cookieStore == null) {
@@ -45,12 +45,12 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     if (SuperTokensUtils.getApiDomain(options.uri.toString()) !=
         SuperTokens.config.apiDomain) {
-      super.onRequest(options, handler);
+      return super.onRequest(options, handler);
     }
 
     if (SuperTokensUtils.getApiDomain(options.uri.toString()) ==
         SuperTokens.refreshTokenUrl) {
-      super.onRequest(options, handler);
+      return super.onRequest(options, handler);
     }
 
     options = await _removeAuthHeaderIfMatchesLocalToken(options);
@@ -232,7 +232,8 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
 
     if (accessToken != null && refreshToken != null) {
-      if (options.headers["Authorization"] != null) {
+      if (options.headers["Authorization"] != null ||
+          options.headers["Authorization"]) {
         //  no-op
       } else {
         String tokenToAdd = addRefreshToken ? refreshToken : accessToken;

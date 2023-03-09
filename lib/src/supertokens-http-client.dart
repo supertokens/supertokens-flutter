@@ -157,7 +157,10 @@ class Client extends http.BaseClient {
       http.BaseRequest mutableRequest) async {
     if (mutableRequest.headers.containsKey("Authorization") ||
         mutableRequest.headers.containsKey("authorization")) {
-      String authValue = mutableRequest.headers["Authorization"]!;
+      String? authValue = mutableRequest.headers["Authorization"];
+      if (authValue == null) {
+        authValue = mutableRequest.headers["authorization"];
+      }
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
 
       if (accessToken != null && authValue == "Bearer $accessToken") {
@@ -288,33 +291,19 @@ class Client extends http.BaseClient {
     }
   }
 
-  static Map<String, dynamic> _generateMapFromCookie(String cookie) {
-    if (cookie.isEmpty) return {};
-    List<String> entries = cookie.split(";");
-    Map<String, dynamic> map = {};
-    entries.forEach((element) {
-      List<String> keyValuePair = element.split("=");
-      if (keyValuePair.length == 2) {
-        map[keyValuePair[0]] = keyValuePair[1];
-      }
-    });
-    return map;
+  static String _cookieMapToHeaderString(Map<String, dynamic> cookieMap) {
+    return cookieMap.keys.map((e) => "$e=${cookieMap[e]}").join(";");
   }
 
   static String _generateCookieHeader(String? oldCookie, String? newCookie) {
-    Map<String, dynamic> existingCookieHeaderMap =
-        _generateMapFromCookie(oldCookie ?? "");
-    Map<String, dynamic> newCookiesToAddMap =
-        _generateMapFromCookie(newCookie ?? "");
-    String finalCookieHeader = "";
-    existingCookieHeaderMap.keys.forEach((element) {
-      if (newCookiesToAddMap.containsKey(element)) {
-        finalCookieHeader += "$element=${newCookiesToAddMap[element]};";
-      } else {
-        finalCookieHeader += "$element=${existingCookieHeaderMap[element]};";
-      }
-    });
-    return "${finalCookieHeader}HttpOnly;";
+    List<Cookie> oldCookies =
+        SuperTokensCookieStore.getCookieListFromHeader(oldCookie ?? "");
+    List<Cookie> newCookies =
+        SuperTokensCookieStore.getCookieListFromHeader(newCookie ?? "");
+    Iterable newCookiesNames = newCookies.map((e) => e.name);
+    oldCookies.removeWhere((element) => newCookiesNames.contains(element.name));
+    newCookies.addAll(oldCookies);
+    return newCookies.map((e) => e.toString()).join(':');
   }
 }
 
