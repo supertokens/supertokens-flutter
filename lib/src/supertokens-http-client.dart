@@ -100,7 +100,7 @@ class Client extends http.BaseClient {
           // If the request already has a "cookie" header, combine it with persistent cookies
           if (existingCookieHeader != null) {
             copiedRequest.headers[HttpHeaders.cookieHeader] =
-                "$existingCookieHeader;${newCookiesToAdd ?? ""}";
+                _generateCookieHeader(existingCookieHeader, newCookiesToAdd);
           } else {
             copiedRequest.headers[HttpHeaders.cookieHeader] =
                 newCookiesToAdd ?? "";
@@ -161,8 +161,8 @@ class Client extends http.BaseClient {
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
 
       if (accessToken != null && authValue == "Bearer $accessToken") {
-        mutableRequest.headers["Authorization"] = "";
-        mutableRequest.headers["authorization"] = "";
+        mutableRequest.headers.remove("Authorization");
+        mutableRequest.headers.remove("authorization");
       }
     }
     return mutableRequest;
@@ -191,6 +191,9 @@ class Client extends http.BaseClient {
       }
       Uri refreshUrl = Uri.parse(SuperTokens.refreshTokenUrl);
       http.Request refreshReq = http.Request('POST', refreshUrl);
+      refreshReq = await Utils.setAuthorizationHeaderIfRequiredForRequestObject(
+          refreshReq,
+          addRefreshToken: true);
 
       if (preRequestLocalSessionState.status ==
           LocalSessionStateStatus.EXISTS) {
@@ -280,9 +283,38 @@ class Client extends http.BaseClient {
         await SuperTokensUtils.getLocalSessionState();
     if (preRequestLocalSessionState.status ==
         LocalSessionStateStatus.NOT_EXISTS) {
-      AntiCSRF.removeToken();
-      FrontToken.removeToken();
+      await AntiCSRF.removeToken();
+      await FrontToken.removeToken();
     }
+  }
+
+  static Map<String, dynamic> _generateMapFromCookie(String cookie) {
+    if (cookie.isEmpty) return {};
+    List<String> entries = cookie.split(";");
+    Map<String, dynamic> map = {};
+    entries.forEach((element) {
+      List<String> keyValuePair = element.split("=");
+      if (keyValuePair.length == 2) {
+        map[keyValuePair[0]] = keyValuePair[1];
+      }
+    });
+    return map;
+  }
+
+  static String _generateCookieHeader(String? oldCookie, String? newCookie) {
+    Map<String, dynamic> existingCookieHeaderMap =
+        _generateMapFromCookie(oldCookie ?? "");
+    Map<String, dynamic> newCookiesToAddMap =
+        _generateMapFromCookie(newCookie ?? "");
+    String finalCookieHeader = "";
+    existingCookieHeaderMap.keys.forEach((element) {
+      if (newCookiesToAddMap.containsKey(element)) {
+        finalCookieHeader += "$element=${newCookiesToAddMap[element]};";
+      } else {
+        finalCookieHeader += "$element=${existingCookieHeaderMap[element]};";
+      }
+    });
+    return "${finalCookieHeader}HttpOnly;";
   }
 }
 

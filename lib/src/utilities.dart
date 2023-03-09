@@ -5,6 +5,7 @@ import 'package:supertokens_flutter/src/constants.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/normalised-url-domain.dart';
 import 'package:supertokens_flutter/src/normalised-url-path.dart';
+import 'package:dio/dio.dart' as Dio;
 
 import '../supertokens.dart';
 
@@ -296,6 +297,23 @@ class Utils {
     return mutableRequest;
   }
 
+  static Future<http.Request> setAuthorizationHeaderIfRequiredForRequestObject(
+      http.Request mutableRequest,
+      {bool addRefreshToken = false}) async {
+    String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    if (accessToken != null && refreshToken != null) {
+      if (mutableRequest.headers["Authorization"] != null) {
+        //  no-op
+      } else {
+        String tokenToAdd = addRefreshToken ? refreshToken : accessToken;
+        mutableRequest.headers["Authorization"] = "Bearer $tokenToAdd";
+      }
+    }
+    return mutableRequest;
+  }
+
   static void setToken(TokenType tokenType, String value) async {
     String name = tokenType.getStorageName();
     return await SuperTokensUtils.storeInStorage(name, value);
@@ -305,24 +323,24 @@ class Utils {
       http.StreamedResponse response) async {
     Map<String, String> headers = response.headers;
 
+    if (headers[frontTokenHeaderKey] != null) {
+      await FrontToken.setItem(headers[frontTokenHeaderKey]!);
+    }
+
+    if (headers[antiCSRFHeaderKey] != null) {
+      LocalSessionState localSessionState =
+          await SuperTokensUtils.getLocalSessionState();
+
+      await AntiCSRF.setToken(
+          headers[antiCSRFHeaderKey]!, localSessionState.lastAccessTokenUpdate);
+    }
+
     if (headers[ACCESS_TOKEN_NAME] != null) {
       setToken(TokenType.ACCESS, headers[ACCESS_TOKEN_NAME]!);
     }
 
     if (headers[REFRESH_TOKEN_NAME] != null) {
       setToken(TokenType.REFRESH, headers[REFRESH_TOKEN_NAME]!);
-    }
-
-    if (headers[frontTokenHeaderKey] != null) {
-      FrontToken.setItem(headers[frontTokenHeaderKey]!);
-    }
-
-    LocalSessionState localSessionState =
-        await SuperTokensUtils.getLocalSessionState();
-
-    if (headers[antiCSRFHeaderKey] != null) {
-      AntiCSRF.setToken(
-          headers[antiCSRFHeaderKey]!, localSessionState.lastAccessTokenUpdate);
     }
   }
 }

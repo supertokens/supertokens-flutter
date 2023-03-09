@@ -27,7 +27,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         requestOptions: options,
         type: DioErrorType.other,
         error: SuperTokensException(
-            "SuperTokens.initialise must be called before using Client"),
+            "SuperTokens.init must be called before using Client"),
       ));
       return;
     }
@@ -53,6 +53,8 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       super.onRequest(options, handler);
     }
 
+    options = await _removeAuthHeaderIfMatchesLocalToken(options);
+
     _preRequestLocalSessionState =
         await SuperTokensUtils.getLocalSessionState();
     String? antiCSRFToken = await AntiCSRF.getToken(
@@ -61,6 +63,12 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     if (antiCSRFToken != null) {
       options.headers[antiCSRFHeaderKey] = antiCSRFToken;
     }
+
+    SuperTokensTokenTransferMethod tokenTransferMethod =
+        SuperTokens.config.tokenTransferMethod!;
+    options.headers["st-auth-mode"] = tokenTransferMethod.getValue();
+
+    options = await _setAuthorizationHeaderIfRequired(options);
 
     userSetCookie = options.headers[HttpHeaders.cookieHeader];
 
@@ -80,8 +88,6 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     } else {
       options.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
     }
-
-    options.headers.addAll({'st-auth-mode': 'cookie'});
 
     var oldValidate = options.validateStatus;
     options.validateStatus = (status) {
@@ -116,10 +122,12 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     try {
       if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
+        RequestOptions requestOptions = response.requestOptions;
+        requestOptions =
+            await _removeAuthHeaderIfMatchesLocalToken(requestOptions);
         UnauthorisedResponse shouldRetry =
             await Client.onUnauthorisedResponse(_preRequestLocalSessionState);
         if (shouldRetry.status == UnauthorisedStatus.RETRY) {
-          RequestOptions requestOptions = response.requestOptions;
           requestOptions.headers[HttpHeaders.cookieHeader] = userSetCookie;
           Response<dynamic> res = await client.fetch(requestOptions);
           List<dynamic>? setCookieFromResponse =
@@ -170,19 +178,67 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   Future<void> saveTokensFromHeaders(Response response) async {
     String? frontTokenFromResponse =
         response.headers.map[frontTokenHeaderKey]?.first.toString();
+
     if (frontTokenFromResponse != null) {
       await FrontToken.setItem(frontTokenFromResponse);
     }
 
     String? antiCSRFFromResponse =
         response.headers.map[antiCSRFHeaderKey]?.first.toString();
+
     if (antiCSRFFromResponse != null) {
       LocalSessionState localSessionState =
           await SuperTokensUtils.getLocalSessionState();
+
       await AntiCSRF.setToken(
         antiCSRFFromResponse,
         localSessionState.lastAccessTokenUpdate,
       );
     }
+
+    String? accessHeader =
+        response.headers.map[ACCESS_TOKEN_NAME]?.first.toString();
+
+    if (accessHeader != null) {
+      Utils.setToken(TokenType.ACCESS, accessHeader);
+    }
+    String? refreshHeader =
+        response.headers.map[REFRESH_TOKEN_NAME]?.first.toString();
+
+    if (refreshHeader != null) {
+      Utils.setToken(TokenType.REFRESH, refreshHeader);
+    }
+  }
+
+  Future<RequestOptions> _removeAuthHeaderIfMatchesLocalToken(
+      RequestOptions req) async {
+    if (req.headers.containsKey("Authorization") ||
+        req.headers.containsKey("authorization")) {
+      String authValue = req.headers['Authorization'];
+      String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+
+      if (accessToken != null && authValue != "Bearer $accessToken") {
+        req.headers.remove('Authorization');
+        req.headers.remove('authorization');
+      }
+    }
+    return req;
+  }
+
+  static Future<RequestOptions> _setAuthorizationHeaderIfRequired(
+      RequestOptions options,
+      {bool addRefreshToken = false}) async {
+    String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    if (accessToken != null && refreshToken != null) {
+      if (options.headers["Authorization"] != null) {
+        //  no-op
+      } else {
+        String tokenToAdd = addRefreshToken ? refreshToken : accessToken;
+        options.headers["Authorization"] = "Bearer $tokenToAdd";
+      }
+    }
+    return options;
   }
 }
