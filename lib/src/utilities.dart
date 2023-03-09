@@ -131,9 +131,6 @@ class SuperTokensUtils {
 
   static Future<LocalSessionState> getLocalSessionState() async {
     var lastAccessTokenUpdate = await getFromStorage(lastAccessTokenStorageKey);
-    // ! DO NOT REMOVE THE BELOW FOR EACH LOOP, REMOVING THIS BREAKS THRE TESTS
-    var instance = await SharedPreferences.getInstance();
-    instance.getKeys().forEach((element) {});
     var frontTokenExists = await FrontToken.doesTokenExist();
 
     if (frontTokenExists && lastAccessTokenUpdate != null) {
@@ -287,7 +284,8 @@ class Utils {
     String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
 
     if (accessToken != null && refreshToken != null) {
-      if (mutableRequest.headers["Authorization"] != null) {
+      if (mutableRequest.headers["Authorization"] != null ||
+          mutableRequest.headers["authorization"] != null) {
         //  no-op
       } else {
         String tokenToAdd = addRefreshToken ? refreshToken : accessToken;

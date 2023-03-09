@@ -236,7 +236,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     if (accessToken != null && refreshToken != null) {
       if (options.headers["Authorization"] != null ||
-          options.headers["Authorization"]) {
+          options.headers["authorization"] != null) {
         //  no-op
       } else {
         String tokenToAdd = addRefreshToken ? refreshToken : accessToken;

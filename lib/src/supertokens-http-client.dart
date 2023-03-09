@@ -98,7 +98,7 @@ class Client extends http.BaseClient {
               copiedRequest.headers[HttpHeaders.cookieHeader];
 
           // If the request already has a "cookie" header, combine it with persistent cookies
-          if (existingCookieHeader != null) {
+          if (existingCookieHeader != null && existingCookieHeader != "") {
             copiedRequest.headers[HttpHeaders.cookieHeader] =
                 _generateCookieHeader(existingCookieHeader, newCookiesToAdd);
           } else {
@@ -295,11 +295,14 @@ class Client extends http.BaseClient {
     return cookieMap.keys.map((e) => "$e=${cookieMap[e]}").join(";");
   }
 
-  static String _generateCookieHeader(String? oldCookie, String? newCookie) {
+  static String _generateCookieHeader(String oldCookie, String? newCookie) {
+    if (newCookie == null) {
+      return oldCookie;
+    }
     List<Cookie> oldCookies =
-        SuperTokensCookieStore.getCookieListFromHeader(oldCookie ?? "");
+        SuperTokensCookieStore.getCookieListFromHeader(oldCookie);
     List<Cookie> newCookies =
-        SuperTokensCookieStore.getCookieListFromHeader(newCookie ?? "");
+        SuperTokensCookieStore.getCookieListFromHeader(newCookie);
     Iterable newCookiesNames = newCookies.map((e) => e.name);
     oldCookies.removeWhere((element) => newCookiesNames.contains(element.name));
     newCookies.addAll(oldCookies);
