@@ -306,7 +306,7 @@ class Client extends http.BaseClient {
     Iterable newCookiesNames = newCookies.map((e) => e.name);
     oldCookies.removeWhere((element) => newCookiesNames.contains(element.name));
     newCookies.addAll(oldCookies);
-    return newCookies.map((e) => e.toString()).join(':');
+    return newCookies.map((e) => e.toString()).join(';');
   }
 }
 
