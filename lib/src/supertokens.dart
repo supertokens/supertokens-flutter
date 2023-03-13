@@ -22,15 +22,15 @@ class SuperTokens {
   static bool isInitCalled = false;
   static String refreshTokenUrl = "";
   static String signOutUrl = "";
-  static String rid = '';
+  static String rid = "";
   static late NormalisedInputType config;
 
   static void init({
     required String apiDomain,
     String? apiBasePath,
     int sessionExpiredStatusCode = 401,
-    String? cookieDomain,
-    String? userDefaultdSuiteName,
+    String? sessionTokenBackendDomain,
+    SuperTokensTokenTransferMethod? tokenTransferMethod,
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
@@ -40,14 +40,15 @@ class SuperTokens {
     }
 
     SuperTokens.config = NormalisedInputType.normaliseInputType(
-        apiDomain,
-        apiBasePath,
-        sessionExpiredStatusCode,
-        cookieDomain,
-        userDefaultdSuiteName,
-        eventHandler,
-        preAPIHook,
-        postAPIHook);
+      apiDomain,
+      apiBasePath,
+      sessionExpiredStatusCode,
+      sessionTokenBackendDomain,
+      tokenTransferMethod,
+      eventHandler,
+      preAPIHook,
+      postAPIHook,
+    );
 
     SuperTokens.refreshTokenUrl =
         config.apiDomain + (config.apiBasePath ?? '') + "/session/refresh";
@@ -185,5 +186,12 @@ class SuperTokens {
         throw SuperTokensException("Could not refresh session");
     }
     return userPayload;
+  }
+
+  static Future<String?> getAccessToken() async {
+    if (await doesSessionExist()) {
+      return await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    }
+    return null;
   }
 }
