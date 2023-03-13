@@ -32,25 +32,12 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       return;
     }
 
-    if (!Utils.shouldDoInterceptions(
-        options.uri.toString(),
-        SuperTokens.config.apiDomain,
-        SuperTokens.config.sessionTokenBackendDomain)) {
+    if (!shouldRunDioInterceptor(options)) {
       return super.onRequest(options, handler);
     }
 
     if (Client.cookieStore == null) {
       Client.cookieStore = SuperTokensCookieStore();
-    }
-
-    if (SuperTokensUtils.getApiDomain(options.uri.toString()) !=
-        SuperTokens.config.apiDomain) {
-      return super.onRequest(options, handler);
-    }
-
-    if (SuperTokensUtils.getApiDomain(options.uri.toString()) ==
-        SuperTokens.refreshTokenUrl) {
-      return super.onRequest(options, handler);
     }
 
     options = await _removeAuthHeaderIfMatchesLocalToken(options);
@@ -103,6 +90,9 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    if (!shouldRunDioInterceptor(response.requestOptions)) {
+      return handler.next(response);
+    }
     _refreshAPILock.acquireWrite();
     await saveTokensFromHeaders(response);
     String? frontTokenFromResponse =
@@ -137,7 +127,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
                 ?.saveFromSetCookieHeader(res.realUri, element);
           });
           await saveTokensFromHeaders(res);
-          handler.next(res);
+          return handler.next(res);
         } else {
           if (shouldRetry.exception != null) {
             handler.reject(
@@ -244,5 +234,26 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       }
     }
     return options;
+  }
+
+  bool shouldRunDioInterceptor(RequestOptions options) {
+    if (SuperTokensUtils.getApiDomain(options.uri.toString()) !=
+        SuperTokens.config.apiDomain) {
+      return false;
+    }
+
+    if (SuperTokensUtils.getApiDomain(options.uri.toString()) ==
+        SuperTokens.refreshTokenUrl) {
+      return false;
+    }
+
+    if (!Utils.shouldDoInterceptions(
+        options.uri.toString(),
+        SuperTokens.config.apiDomain,
+        SuperTokens.config.sessionTokenBackendDomain)) {
+      return false;
+    }
+
+    return true;
   }
 }

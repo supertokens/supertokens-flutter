@@ -1,9 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:dio_http_formatter/dio_http_formatter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
-import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
@@ -25,7 +24,7 @@ void main() {
   });
   tearDownAll(() async => await SuperTokensTestUtils.afterAllTest());
 
-  Dio setUpDio({String? url}) {
+  Dio setUpDio() {
     Dio dio = Dio(
       BaseOptions(
         baseUrl: apiBasePath,
@@ -349,5 +348,61 @@ void main() {
     if (userInfoResp.statusCode != 200) {
       fail("User Info API failed");
     }
+  });
+
+  test("Test other other domains work without Authentication", () async {
+    await SuperTokensTestUtils.startST(validity: 1);
+    SuperTokens.init(apiDomain: apiBasePath);
+    String url = 'https://www.google.com/';
+    Dio dio = setUpDio();
+    var respGoogle1 = await dio.get(url);
+    if (respGoogle1.statusCode! > 300) fail("external API did not work");
+    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
+    Dio dio2 = setUpDio();
+    var loginResp = await dio2.fetch(req);
+    if (loginResp.statusCode != 200) fail("Login req failed");
+    var respGoogle2 = await dio.get(url);
+    if (respGoogle2.statusCode! > 300) fail("external API did not work");
+    // logout
+    var logoutResp = await dio2.post("/logout");
+    if (logoutResp.statusCode != 200) fail("Logout req failed");
+    var respGoogle3 = await dio.get(url);
+    if (respGoogle3.statusCode! > 300) fail("external API did not work");
+  });
+
+  test('Testing multiple interceptors -- After SuperTokensInterceptorWrapper',
+      () async {
+    await SuperTokensTestUtils.startST(validity: 1);
+    SuperTokens.init(apiDomain: apiBasePath);
+    Dio dio = Dio(
+      BaseOptions(
+        baseUrl: apiBasePath,
+        connectTimeout: 5000,
+        receiveTimeout: 500,
+      ),
+    );
+    dio.interceptors.add(SuperTokensInterceptorWrapper(client: dio));
+    dio.interceptors.add(HttpFormatter());
+    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
+    var loginResp = await dio.fetch(req);
+    if (loginResp.statusCode != 200) fail("Login req failed");
+  });
+
+  test('Testing multiple interceptors -- Before SuperTokensInterceptorWrapper',
+      () async {
+    await SuperTokensTestUtils.startST(validity: 1);
+    SuperTokens.init(apiDomain: apiBasePath);
+    Dio dio = Dio(
+      BaseOptions(
+        baseUrl: apiBasePath,
+        connectTimeout: 5000,
+        receiveTimeout: 500,
+      ),
+    );
+    dio.interceptors.add(HttpFormatter());
+    dio.interceptors.add(SuperTokensInterceptorWrapper(client: dio));
+    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
+    var loginResp = await dio.fetch(req);
+    if (loginResp.statusCode != 200) fail("Login req failed");
   });
 }
