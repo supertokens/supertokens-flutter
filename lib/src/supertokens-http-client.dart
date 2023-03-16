@@ -25,6 +25,7 @@ class Client extends http.BaseClient {
   }
 
   http.Client _innerClient = http.Client();
+  http.BaseRequest? _requestForRetry;
   static SuperTokensCookieStore? cookieStore;
 
   // This annotation will result in a warning to anyone using this method outside of this package
@@ -54,8 +55,10 @@ class Client extends http.BaseClient {
       return _innerClient.send(request);
     }
 
-    if (!Utils.shouldDoInterceptions(request.url.toString(),
-        SuperTokens.config.apiDomain, SuperTokens.config.cookieDomain)) {
+    if (!Utils.shouldDoInterceptions(
+        request.url.toString(),
+        SuperTokens.config.apiDomain,
+        SuperTokens.config.sessionTokenBackendDomain)) {
       return _innerClient.send(request);
     }
 
@@ -68,6 +71,8 @@ class Client extends http.BaseClient {
         http.StreamedResponse response;
         try {
           copiedRequest = SuperTokensUtils.copyRequest(request);
+          copiedRequest =
+              await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
           preRequestLocalSessionState =
               await SuperTokensUtils.getLocalSessionState();
           String? antiCSRFToken = await AntiCSRF.getToken(
@@ -77,6 +82,15 @@ class Client extends http.BaseClient {
             copiedRequest.headers[antiCSRFHeaderKey] = antiCSRFToken;
           }
 
+          SuperTokensTokenTransferMethod tokenTransferMethod =
+              SuperTokens.config.tokenTransferMethod;
+          copiedRequest.headers["st-auth-mode"] =
+              tokenTransferMethod.getValue();
+
+          // Adding Authorization headers
+          copiedRequest =
+              await Utils.setAuthorizationHeaderIfRequired(copiedRequest);
+
           // Add cookies to request headers
           String? newCookiesToAdd = await Client.cookieStore
               ?.getCookieHeaderStringForRequest(copiedRequest.url);
@@ -84,19 +98,17 @@ class Client extends http.BaseClient {
               copiedRequest.headers[HttpHeaders.cookieHeader];
 
           // If the request already has a "cookie" header, combine it with persistent cookies
-          if (existingCookieHeader != null) {
+          if (existingCookieHeader != null && existingCookieHeader != "") {
             copiedRequest.headers[HttpHeaders.cookieHeader] =
-                "$existingCookieHeader;${newCookiesToAdd ?? ""}";
+                _generateCookieHeader(existingCookieHeader, newCookiesToAdd);
           } else {
-            copiedRequest.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
+            copiedRequest.headers[HttpHeaders.cookieHeader] =
+                newCookiesToAdd ?? "";
           }
 
-          copiedRequest.headers.addAll({'st-auth-mode': 'cookie'});
-
           // http package does not allow retries with the same request object, so we clone the request when making the network call
-          response =
-              await _innerClient.send(copiedRequest);
-          await saveTokensFromHeaders(response);
+          response = await _innerClient.send(copiedRequest);
+          await Utils.saveTokenFromHeaders(response);
           String? frontTokenInHeaders = response.headers[frontTokenHeaderKey];
           SuperTokensUtils.fireSessionUpdateEventsIfNecessary(
             wasLoggedIn: preRequestLocalSessionState.status ==
@@ -108,19 +120,19 @@ class Client extends http.BaseClient {
           // Save cookies from the response
           String? setCookieFromResponse =
               response.headers[HttpHeaders.setCookieHeader];
-          await Client.cookieStore
-              ?.saveFromSetCookieHeader(copiedRequest.url, setCookieFromResponse);
+          await Client.cookieStore?.saveFromSetCookieHeader(
+              copiedRequest.url, setCookieFromResponse);
         } finally {
           _refreshAPILock.release();
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
+          request = await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
           UnauthorisedResponse shouldRetry =
               await onUnauthorisedResponse(preRequestLocalSessionState);
           if (shouldRetry.status == UnauthorisedStatus.RETRY) {
-            
             // Here we use the original request because it wont contain any of the modifications we make
-            send(request);
+            return await send(request);
           } else {
             if (shouldRetry.exception != null) {
               throw SuperTokensException(shouldRetry.exception!.message);
@@ -139,6 +151,24 @@ class Client extends http.BaseClient {
         await FrontToken.removeToken();
       }
     }
+  }
+
+  Future<http.BaseRequest> _removeAuthHeaderIfMatchesLocalToken(
+      http.BaseRequest mutableRequest) async {
+    if (mutableRequest.headers.containsKey("Authorization") ||
+        mutableRequest.headers.containsKey("authorization")) {
+      String? authValue = mutableRequest.headers["Authorization"];
+      if (authValue == null) {
+        authValue = mutableRequest.headers["authorization"];
+      }
+      String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+
+      if (accessToken != null && authValue == "Bearer $accessToken") {
+        mutableRequest.headers.remove("Authorization");
+        mutableRequest.headers.remove("authorization");
+      }
+    }
+    return mutableRequest;
   }
 
   static Future<UnauthorisedResponse> onUnauthorisedResponse(
@@ -164,6 +194,9 @@ class Client extends http.BaseClient {
       }
       Uri refreshUrl = Uri.parse(SuperTokens.refreshTokenUrl);
       http.Request refreshReq = http.Request('POST', refreshUrl);
+      refreshReq = await Utils.setAuthorizationHeaderIfRequiredForRequestObject(
+          refreshReq,
+          addRefreshToken: true);
 
       if (preRequestLocalSessionState.status ==
           LocalSessionStateStatus.EXISTS) {
@@ -184,7 +217,7 @@ class Client extends http.BaseClient {
       refreshReq =
           SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
       var resp = await refreshReq.send();
-      await saveTokensFromHeaders(resp);
+      await Utils.saveTokenFromHeaders(resp);
       http.Response response = await http.Response.fromStream(resp);
 
       // Save cookies from the response
@@ -248,22 +281,32 @@ class Client extends http.BaseClient {
     }
   }
 
-  static Future<void> saveTokensFromHeaders(
-      http.StreamedResponse response) async {
-    String? frontTokenFromResponse = response.headers[frontTokenHeaderKey];
-    if (frontTokenFromResponse != null) {
-      await FrontToken.setItem(frontTokenFromResponse);
+  static Future clearTokensIfRequired() async {
+    LocalSessionState preRequestLocalSessionState =
+        await SuperTokensUtils.getLocalSessionState();
+    if (preRequestLocalSessionState.status ==
+        LocalSessionStateStatus.NOT_EXISTS) {
+      await AntiCSRF.removeToken();
+      await FrontToken.removeToken();
     }
+  }
 
-    String? antiCSRFFromResponse = response.headers[antiCSRFHeaderKey];
-    if (antiCSRFFromResponse != null) {
-      LocalSessionState localSessionState =
-          await SuperTokensUtils.getLocalSessionState();
-      await AntiCSRF.setToken(
-        antiCSRFFromResponse,
-        localSessionState.lastAccessTokenUpdate,
-      );
+  static String _cookieMapToHeaderString(Map<String, dynamic> cookieMap) {
+    return cookieMap.keys.map((e) => "$e=${cookieMap[e]}").join(";");
+  }
+
+  static String _generateCookieHeader(String oldCookie, String? newCookie) {
+    if (newCookie == null) {
+      return oldCookie;
     }
+    List<Cookie> oldCookies =
+        SuperTokensCookieStore.getCookieListFromHeader(oldCookie);
+    List<Cookie> newCookies =
+        SuperTokensCookieStore.getCookieListFromHeader(newCookie);
+    Iterable newCookiesNames = newCookies.map((e) => e.name);
+    oldCookies.removeWhere((element) => newCookiesNames.contains(element.name));
+    newCookies.addAll(oldCookies);
+    return newCookies.map((e) => e.toString()).join(';');
   }
 }
 

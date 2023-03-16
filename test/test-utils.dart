@@ -19,10 +19,10 @@ class SuperTokensTestUtils {
     await _internalClient.post(Uri.parse(beforeAllTestAPIURL));
   }
 
-  static void beforeEachTest() async {
+  static beforeEachTest() async {
     String beforeEachAPIURL = "$baseUrl/beforeeach";
-    FrontToken.removeToken();
-    AntiCSRF.removeToken();
+    await FrontToken.removeToken();
+    await AntiCSRF.removeToken();
     SuperTokens.isInitCalled = false;
     await _internalClient.post(Uri.parse(beforeEachAPIURL));
   }
@@ -33,7 +33,7 @@ class SuperTokensTestUtils {
   }
 
   static Future startST(
-      {required int validity, bool disableAntiCSRF = false}) async {
+      {int validity = 1, bool disableAntiCSRF = false}) async {
     String startSTAPIURL = "$baseUrl/startst";
     var body = jsonEncode(
         {"accessTokenValidity": validity, "enableAntiCsrf": !disableAntiCSRF});
@@ -62,7 +62,7 @@ class SuperTokensTestUtils {
     var loginAPIURL = "$baseUrl/login";
     var request = http.Request('POST', Uri.parse(loginAPIURL));
     request.headers['Content-Type'] = "application/json; charset=utf-8";
-    var body = {"userId": "supertokens-ios-tests"};
+    var body = {"userId": "supertokens-flutter-tests"};
     var jsonBody = jsonEncode(body);
     request.body = jsonBody;
     return request;

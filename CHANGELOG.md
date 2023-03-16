@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2023-03-13
+
+### Breaking Changes
+
+- Properties passed when calling SuperTokens.init have been renamed:
+    - `cookieDomain` -> `sessionTokenBackendDomain`
+    - `userDefaultdSuiteName` -> removed (unused variable)
+
+### Added
+
+- The SDK now supports managing sessions via headers (using `Authorization` bearer tokens) instead of cookies
+- A new property has been added when calling SuperTokens.init: `tokenTransferMethod`. This can be used to configure whether the SDK should use cookies or headers for session management (`header` by default). Refer to https://supertokens.com/docs/thirdpartyemailpassword/common-customizations/sessions/token-transfer-method for more information
+
 ## [0.1.2] - 2023-02-14
 
 - Added fix for dio Interceptors `Bad State: Future already completed` error
