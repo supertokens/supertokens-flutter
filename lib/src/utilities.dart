@@ -24,19 +24,6 @@ extension TokenTypeExtension on TokenType {
   }
 }
 
-enum SuperTokensTokenTransferMethod { COOKIE, HEADER }
-
-extension ValueExtension on SuperTokensTokenTransferMethod {
-  String getValue() {
-    switch (this) {
-      case SuperTokensTokenTransferMethod.HEADER:
-        return "header";
-      case SuperTokensTokenTransferMethod.COOKIE:
-        return "cookie";
-    }
-  }
-}
-
 class LocalSessionState {
   LocalSessionStateStatus status;
   String? lastAccessTokenUpdate;
