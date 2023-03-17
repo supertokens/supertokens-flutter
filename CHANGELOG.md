@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2023-03-17
+
+### Fixes
+- Moved `SuperTokensTokenTransferMethod` from utilities to supertokens for cleaner imports
+
 ## [0.2.1] - 2023-03-16
 
 - Fixes an issues that caused reference documentaiotn regeneration to fail

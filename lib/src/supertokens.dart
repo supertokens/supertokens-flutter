@@ -15,6 +15,19 @@ enum Eventype {
 
 enum APIAction { SIGN_OUT, REFRESH_TOKEN }
 
+enum SuperTokensTokenTransferMethod { COOKIE, HEADER }
+
+extension ValueExtension on SuperTokensTokenTransferMethod {
+  String getValue() {
+    switch (this) {
+      case SuperTokensTokenTransferMethod.HEADER:
+        return "header";
+      case SuperTokensTokenTransferMethod.COOKIE:
+        return "cookie";
+    }
+  }
+}
+
 /// Primary class for the supertokens package
 /// Use [SuperTokens.initialise] to initialise the package, do this before making any network calls
 class SuperTokens {
