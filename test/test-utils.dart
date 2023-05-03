@@ -90,6 +90,18 @@ class SuperTokensTestUtils {
     return reqOptions;
   }
 
+  static RequestOptions getLogin218RequestDio() {
+    var loginAPIURL = "/login-2.18";
+    var reqOptions = RequestOptions(
+      baseUrl: baseUrl,
+      path: loginAPIURL,
+      method: 'POST',
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      data: {"userId": "supertokens-ios-tests", "payload": {"asdf": 1}},
+    );
+    return reqOptions;
+  }
+
   static Future<Map<String, bool>> getFeatureFlags() async {
     var featureFlagsAPIURL = "$baseUrl/featureFlags";
     http.Response resp =
