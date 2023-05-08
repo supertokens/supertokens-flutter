@@ -45,6 +45,7 @@ cd ../
 echo $SUPERTOKENS_API_KEY > apiPassword
 ./utils/setupTestEnvLocal
 cd ../project/testHelpers/server/
+nvm use 16
 npm i -d --force
 npm i git+https://github.com:supertokens/supertokens-node.git#$2
 TEST_MODE=testing INSTALL_PATH=../../../supertokens-root node . &
