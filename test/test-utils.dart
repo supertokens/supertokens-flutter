@@ -33,7 +33,7 @@ class SuperTokensTestUtils {
   }
 
   static Future startST(
-      {int validity = 1, bool disableAntiCSRF = false}) async {
+      {int validity = 3, bool disableAntiCSRF = false}) async {
     String startSTAPIURL = "$baseUrl/startst";
     var body = jsonEncode(
         {"accessTokenValidity": validity, "enableAntiCsrf": !disableAntiCSRF});
@@ -68,6 +68,16 @@ class SuperTokensTestUtils {
     return request;
   }
 
+  static http.Request getLogin218Request() {
+    var loginAPIURL = "$baseUrl/login-2.18";
+    var request = http.Request('POST', Uri.parse(loginAPIURL));
+    request.headers['Content-Type'] = "application/json; charset=utf-8";
+    var body = {"userId": "supertokens-flutter-tests", "payload": {"asdf": 1}};
+    var jsonBody = jsonEncode(body);
+    request.body = jsonBody;
+    return request;
+  }
+
   static RequestOptions getLoginRequestDio() {
     var loginAPIURL = "/login";
     var reqOptions = RequestOptions(
@@ -78,5 +88,33 @@ class SuperTokensTestUtils {
       data: {"userId": "supertokens-ios-tests"},
     );
     return reqOptions;
+  }
+
+  static RequestOptions getLogin218RequestDio() {
+    var loginAPIURL = "/login-2.18";
+    var reqOptions = RequestOptions(
+      baseUrl: baseUrl,
+      path: loginAPIURL,
+      method: 'POST',
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      data: {"userId": "supertokens-ios-tests", "payload": {"asdf": 1}},
+    );
+    return reqOptions;
+  }
+
+  static Future<Map<String, bool>> getFeatureFlags() async {
+    var featureFlagsAPIURL = "$baseUrl/featureFlags";
+    http.Response resp =
+        await _internalClient.get(Uri.parse(featureFlagsAPIURL));
+    if (resp.statusCode != 200) {
+      throw Exception("Getting count failed");
+    }
+    Map<String, bool> respBody = Map.castFrom(jsonDecode(resp.body));
+    return respBody;
+  }
+
+  static Future<bool> checkIfV3AccessTokenIsSupported() async {
+    var featureFlags = await getFeatureFlags();
+    return featureFlags['v3AccessToken'] == true;
   }
 }
