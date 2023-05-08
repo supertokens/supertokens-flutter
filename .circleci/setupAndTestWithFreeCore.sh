@@ -47,7 +47,6 @@ echo $SUPERTOKENS_API_KEY > apiPassword
 cd ../project/testHelpers/server/
 npm i -d --force
 npm i git+https://github.com:supertokens/supertokens-node.git#$2
-npx tsc -p tsconfig.json
 TEST_MODE=testing INSTALL_PATH=../../../supertokens-root node . &
 pid=$!
 cd ../../
