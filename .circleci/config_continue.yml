@@ -38,6 +38,18 @@ jobs:
       - run: cd / && echo 'export PATH' >> /etc/profile
       - run: cd / && update-alternatives --install "/usr/bin/java" "java" "/usr/java/jdk-15.0.1/bin/java" 2
       - run: cd / && update-alternatives --install "/usr/bin/javac" "javac" "/usr/java/jdk-15.0.1/bin/javac" 2
+      - run: curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+      - run:
+          name: Swap node versions
+          command: |
+            set +e
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            nvm install 16
+
+            echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
       - run: (cd .circleci/ && ./doTests.sh  << parameters.fdi-version >>)
   test-success:
     docker:
