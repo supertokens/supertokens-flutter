@@ -146,6 +146,8 @@ class FrontToken {
   static Future<void> removeToken() async {
     await _tokenInfoMutex.acquireWrite();
     await _removeTokenFromStorage();
+    await Utils.setToken(TokenType.ACCESS, "");
+    await Utils.setToken(TokenType.REFRESH, "");
     if (_tokenInfoMutex.isLocked) {
       _tokenInfoMutex.release();
     }

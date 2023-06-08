@@ -299,7 +299,7 @@ class Utils {
     return mutableRequest;
   }
 
-  static void setToken(TokenType tokenType, String value) async {
+  static Future<void> setToken(TokenType tokenType, String value) async {
     String name = tokenType.getStorageName();
     return await SuperTokensUtils.storeInStorage(name, value);
   }
@@ -321,11 +321,11 @@ class Utils {
     }
 
     if (headers[ACCESS_TOKEN_NAME] != null) {
-      setToken(TokenType.ACCESS, headers[ACCESS_TOKEN_NAME]!);
+      await setToken(TokenType.ACCESS, headers[ACCESS_TOKEN_NAME]!);
     }
 
     if (headers[REFRESH_TOKEN_NAME] != null) {
-      setToken(TokenType.REFRESH, headers[REFRESH_TOKEN_NAME]!);
+      await setToken(TokenType.REFRESH, headers[REFRESH_TOKEN_NAME]!);
     }
   }
 }
