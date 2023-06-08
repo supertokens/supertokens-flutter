@@ -78,6 +78,13 @@ class SuperTokensTestUtils {
     return request;
   }
 
+  static http.Request getLogoutAltRequest() {
+    var loginAPIURL = "$baseUrl/logout-alt";
+    var request = http.Request('POST', Uri.parse(loginAPIURL));
+    request.headers['Content-Type'] = "application/json; charset=utf-8";
+    return request;
+  }
+
   static RequestOptions getLoginRequestDio() {
     var loginAPIURL = "/login";
     var reqOptions = RequestOptions(
@@ -98,6 +105,18 @@ class SuperTokensTestUtils {
       method: 'POST',
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       data: {"userId": "supertokens-ios-tests", "payload": {"asdf": 1}},
+    );
+    return reqOptions;
+  }
+
+  static RequestOptions getLogoutAltRequestDio() {
+    var loginAPIURL = "/logout-alt";
+    var reqOptions = RequestOptions(
+      baseUrl: baseUrl,
+      path: loginAPIURL,
+      method: 'POST',
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      data: {},
     );
     return reqOptions;
   }

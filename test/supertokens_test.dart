@@ -383,4 +383,37 @@ void main() {
       fail("User info get API failed");
     }
   });
+
+  test("Test that access token and refresh token are cleared after front token is removed", () async {
+    await SuperTokensTestUtils.startST();
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+
+    String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    assert(accessToken != null);
+    assert(refreshToken != null);
+
+    Request req2 = SuperTokensTestUtils.getLogoutAltRequest();
+    streamedResp = await http.send(req2);
+
+    var logoutResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Logout failed");
+    }
+
+    String? accessTokenAfter = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshTokenAfter = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    assert(accessTokenAfter == null);
+    assert(refreshTokenAfter == null);
+  });
 }

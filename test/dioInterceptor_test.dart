@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 import 'test-utils.dart';
@@ -348,6 +349,31 @@ void main() {
     if (userInfoResp.statusCode != 200) {
       fail("User Info API failed");
     }
+  });
+
+  test("Test that access token and refresh token are cleared after front token is removed", () async {
+    await SuperTokensTestUtils.startST();
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
+    Dio dio = setUpDio();
+    var resp = await dio.fetch(req);
+    if (resp.statusCode != 200) fail("Login req failed");
+
+    String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    assert(accessToken != null);
+    assert(refreshToken != null);
+
+    RequestOptions req2 = SuperTokensTestUtils.getLogoutAltRequestDio();
+    await dio.fetch(req2);
+
+    String? accessTokenAfter = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+    String? refreshTokenAfter = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+
+    assert(accessTokenAfter == null);
+    assert(refreshTokenAfter == null);
   });
 
   test("Test other other domains work without Authentication", () async {

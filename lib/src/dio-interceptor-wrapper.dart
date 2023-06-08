@@ -190,13 +190,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         response.headers.map[ACCESS_TOKEN_NAME]?.first.toString();
 
     if (accessHeader != null) {
-      Utils.setToken(TokenType.ACCESS, accessHeader);
+      await Utils.setToken(TokenType.ACCESS, accessHeader);
     }
     String? refreshHeader =
         response.headers.map[REFRESH_TOKEN_NAME]?.first.toString();
 
     if (refreshHeader != null) {
-      Utils.setToken(TokenType.REFRESH, refreshHeader);
+      await Utils.setToken(TokenType.REFRESH, refreshHeader);
     }
   }
 
