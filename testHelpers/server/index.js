@@ -525,6 +525,15 @@ app.post("/logout-alt", async (req, res) => {
         .json({});
 });
 
+app.get("/base-custom-auth", async (req, res) => {
+    let header = req.headers["authorization"];
+    if (header === "Bearer myOwnHeHe") {
+        return res.status(200).json({message: "OK"});
+    } else {
+        return res.status(500).json({message: "Bad auth header"});
+    }
+})
+
 app.use("*", async (req, res, next) => {
     res.status(404).send();
 });

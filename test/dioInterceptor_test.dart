@@ -431,4 +431,24 @@ void main() {
     var loginResp = await dio.fetch(req);
     if (loginResp.statusCode != 200) fail("Login req failed");
   });
+
+  test("should not ignore the auth header even if it matches the stored access token", () async {
+    await SuperTokensTestUtils.startST();
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
+    Dio dio = setUpDio();
+    var resp = await dio.fetch(req);
+    if (resp.statusCode != 200) fail("Login req failed");
+
+    await Future.delayed(Duration(seconds: 5), () {});
+
+    Utils.setToken(TokenType.ACCESS, "myOwnHeHe");
+
+    dio.options.headers['Authorization'] = "Bearer myOwnHeHe";
+    var userInfoResp = await dio.get("/base-custom-auth");
+    if (userInfoResp.statusCode != 200) {
+      fail("User Info API failed");
+    }
+  });
 }

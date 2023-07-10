@@ -209,8 +209,9 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         authValue = req.headers["authorization"];
       }
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
+      String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
 
-      if (accessToken != null && authValue != "Bearer $accessToken") {
+      if (accessToken != null && refreshToken != null && authValue != "Bearer $accessToken") {
         req.headers.remove('Authorization');
         req.headers.remove('authorization');
       }
