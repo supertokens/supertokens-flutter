@@ -416,4 +416,29 @@ void main() {
     assert(accessTokenAfter == null);
     assert(refreshTokenAfter == null);
   });
+
+  test("should not ignore the auth header even if it matches the stored access token", () async {
+    await SuperTokensTestUtils.startST();
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+
+    await Future.delayed(Duration(seconds: 5), () {});
+
+    Utils.setToken(TokenType.ACCESS, "myOwnHeHe");
+
+    Uri url = Uri.parse("$apiBasePath/base-custom-auth");
+    var resp = await http.get(url, headers: {
+      "Authorization": "Bearer myOwnHeHe",
+    });
+    if (resp.statusCode != 200) {
+      fail("User info get API failed");
+    }
+  });
 }
