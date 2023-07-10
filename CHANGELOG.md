@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2023-07-10
+
+### Fixes
+
+- Fixed an issue where the Authorization header was getting removed unnecessarily
+
 ## [0.2.4] - 2023-06-08
 
 - Refactors session logic to delete access token and refresh token if the front token is removed. This helps with proxies that strip headers with empty values which would result in the access token and refresh token to persist after signout
