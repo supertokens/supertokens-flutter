@@ -5,6 +5,7 @@ import 'package:supertokens_flutter/http.dart' as http;
 import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/supertokens.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 
 import 'test-utils.dart';
 
@@ -53,5 +54,30 @@ void main() {
     int refreshCount = await SuperTokensTestUtils.refreshTokenCounter();
     if (refreshCount != 1 && !results.contains(false) && results.length == 300)
       fail("Refresh counter was incorrect");
+  });
+
+  test("should not ignore the auth header even if it matches the stored access token", () async {
+    await SuperTokensTestUtils.startST();
+    SuperTokens.init(apiDomain: apiBasePath);
+
+    Request req = SuperTokensTestUtils.getLoginRequest();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var loginResp = await Response.fromStream(streamedResp);
+    if (loginResp.statusCode != 200) {
+      fail("Login failed");
+    }
+
+    await Future.delayed(Duration(seconds: 5), () {});
+
+    Utils.setToken(TokenType.ACCESS, "myOwnHeHe");
+
+    Uri url = Uri.parse("$apiBasePath/base-custom-auth");
+    var resp = await http.get(url, headers: {
+      "Authorization": "Bearer myOwnHeHe",
+    });
+    if (resp.statusCode != 200) {
+      fail("User info get API failed");
+    }
   });
 }
