@@ -16,8 +16,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^0.13.0
-  shared_preferences: ^2.0.0
+  http: "<1.2.0"
+  shared_preferences: ">=2.0.0 <3.0.0"
   mutex: ^3.0.0
   dio: ^4.0.0
 
