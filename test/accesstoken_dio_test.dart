@@ -63,6 +63,10 @@ void main() {
         "iss"
       ];
 
+      if (payload["tId"] != null) {
+        expectedKeys.add("tId");
+      }
+
       assert(payload.length == expectedKeys.length);
       for (var key in payload.keys) {
         assert(expectedKeys.contains(key));
@@ -102,6 +106,10 @@ void main() {
         "antiCsrfToken",
         "asdf"
       ];
+
+      if (v3Payload["tId"] != null) {
+        expectedKeys.add("tId");
+      }
 
       assert(v3Payload.length == expectedKeys.length);
       for (var key in v3Payload.keys) {

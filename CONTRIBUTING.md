@@ -44,9 +44,13 @@ We're so excited you're interested in helping with SuperTokens! We are happy to 
    cd ./testHelpers/server/
    npm i -d
    ```
-5. Run all tests
+5. Start the testing server
    ```
-   flutter test
+   TEST_MODE=testing INSTALL_PATH=../../../supertokens-root node .
+   ```
+6. In a new terminal, navigate to the `supertokens-flutter` repository and run all tests
+   ```
+   flutter test --concurrency=1
    ```
 
 ## Pull Request
