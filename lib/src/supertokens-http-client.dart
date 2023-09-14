@@ -214,7 +214,9 @@ class Client extends http.BaseClient {
       String? newCookiesToAdd =
           await Client.cookieStore?.getCookieHeaderStringForRequest(refreshUrl);
       refreshReq.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
-      refreshReq.headers.addAll({'st-auth-mode': 'cookie'});
+      SuperTokensTokenTransferMethod tokenTransferMethod =
+              SuperTokens.config.tokenTransferMethod;
+      refreshReq.headers.addAll({'st-auth-mode': tokenTransferMethod.getValue()});
       refreshReq =
           SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
       var resp = await refreshReq.send();
