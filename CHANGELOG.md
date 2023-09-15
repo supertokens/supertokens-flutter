@@ -6,13 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.9] - 2023-09-13
-
-- Fixes an issue where requests to the refresh endpoint would always send auth mode as cookies in the headers for http
-
 ## [0.2.8] - 2023-09-13
 
 - Adds 1.18 to the list of supported FDI versions
+- Fixes an issue where requests to the refresh endpoint would always send auth mode as cookies in the headers for http
 
 ## [0.2.7] - 2023-07-31
 
