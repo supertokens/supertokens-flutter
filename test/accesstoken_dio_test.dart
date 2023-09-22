@@ -67,6 +67,10 @@ void main() {
         expectedKeys.add("tId");
       }
 
+      if (payload["rsub"] != null) {
+        expectedKeys.add("rsub");
+      }
+
       assert(payload.length == expectedKeys.length);
       for (var key in payload.keys) {
         assert(expectedKeys.contains(key));
@@ -109,6 +113,10 @@ void main() {
 
       if (v3Payload["tId"] != null) {
         expectedKeys.add("tId");
+      }
+
+      if (v3Payload["rsub"] != null) {
+        expectedKeys.add("rsub");
       }
 
       assert(v3Payload.length == expectedKeys.length);
