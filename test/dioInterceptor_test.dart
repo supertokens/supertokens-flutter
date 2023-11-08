@@ -29,8 +29,8 @@ void main() {
     Dio dio = Dio(
       BaseOptions(
         baseUrl: apiBasePath,
-        connectTimeout: 5000,
-        receiveTimeout: 500,
+        connectTimeout: Duration(seconds: 5),
+        receiveTimeout: Duration(milliseconds: 500),
       ),
     );
     dio.interceptors.add(SuperTokensInterceptorWrapper(client: dio));
@@ -403,8 +403,8 @@ void main() {
     Dio dio = Dio(
       BaseOptions(
         baseUrl: apiBasePath,
-        connectTimeout: 5000,
-        receiveTimeout: 500,
+        connectTimeout: Duration(seconds: 5),
+        receiveTimeout: Duration(milliseconds: 500),
       ),
     );
     dio.interceptors.add(SuperTokensInterceptorWrapper(client: dio));
@@ -421,8 +421,8 @@ void main() {
     Dio dio = Dio(
       BaseOptions(
         baseUrl: apiBasePath,
-        connectTimeout: 5000,
-        receiveTimeout: 500,
+        connectTimeout: Duration(seconds: 5),
+        receiveTimeout: Duration(milliseconds: 500),
       ),
     );
     dio.interceptors.add(HttpFormatter());

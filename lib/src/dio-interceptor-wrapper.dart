@@ -23,9 +23,9 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
     if (!SuperTokens.isInitCalled) {
-      handler.reject(DioError(
+      handler.reject(DioException(
         requestOptions: options,
-        type: DioErrorType.other,
+        type: DioExceptionType.unknown,
         error: SuperTokensException(
             "SuperTokens.init must be called before using Client"),
       ));
@@ -52,7 +52,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     }
 
     SuperTokensTokenTransferMethod tokenTransferMethod =
-        SuperTokens.config.tokenTransferMethod!;
+        SuperTokens.config.tokenTransferMethod;
     options.headers["st-auth-mode"] = tokenTransferMethod.getValue();
 
     options = await _setAuthorizationHeaderIfRequired(options);
@@ -131,10 +131,10 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         } else {
           if (shouldRetry.exception != null) {
             handler.reject(
-              DioError(
+              DioException(
                   requestOptions: response.requestOptions,
                   error: SuperTokensException(shouldRetry.exception!.message),
-                  type: DioErrorType.other),
+                  type: DioExceptionType.unknown),
             );
             return;
           } else {
@@ -146,13 +146,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         _refreshAPILock.release();
         return handler.next(response);
       }
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       handler.reject(e);
     } catch (e) {
       handler.reject(
-        DioError(
+        DioException(
             requestOptions: response.requestOptions,
-            type: DioErrorType.other,
+            type: DioExceptionType.unknown,
             error: e),
       );
     } finally {

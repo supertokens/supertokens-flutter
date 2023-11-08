@@ -18,18 +18,17 @@ dependencies:
     sdk: flutter
   http: "<1.2.0"
   shared_preferences: ">=2.0.0 <3.0.0"
-  mutex: ^3.0.0
-  dio: ^4.0.0
+  mutex: ^3.1.0
+  dio: ^5.3.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   test: ^1.21.4
-  dio_http_formatter: ^2.1.0
+  dio_http_formatter: ^3.2.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter.
 flutter:
-
