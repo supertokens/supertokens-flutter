@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 0.2.9 - Released on 2023-11-09
+
+- Updated the dio package to version 5.3.3
+- Upgraded the mutex package to version 3.1.0
+- Added a new Dio mixin
+
 ## [0.2.8] - 2023-09-13
 
 - Adds 1.18 to the list of supported FDI versions

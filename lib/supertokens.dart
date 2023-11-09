@@ -6,4 +6,3 @@ library supertokens;
 
 export "src/supertokens.dart";
 export "src/errors.dart";
-export "src/supertokens_dio_extension.dart";
