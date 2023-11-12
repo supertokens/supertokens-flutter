@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:dio_http_formatter/dio_http_formatter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
