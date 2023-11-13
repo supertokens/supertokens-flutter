@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2023-11-13
 
-- Added a new Dio mixin for interceptor setup
+- Added Dio extension for interceptor setup
 - Updated the mutex package to version ^3.1.0
 
 ### Breaking Changes
