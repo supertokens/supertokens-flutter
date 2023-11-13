@@ -1,11 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
-import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
-import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 
 import 'test-utils.dart';
@@ -30,8 +27,8 @@ void main() {
     Dio dio = Dio(
       BaseOptions(
         baseUrl: apiBasePath,
-        connectTimeout: 5000,
-        receiveTimeout: 500,
+        connectTimeout: Duration(seconds: 5),
+        receiveTimeout: Duration(milliseconds: 500),
       ),
     );
     dio.interceptors.add(SuperTokensInterceptorWrapper(client: dio));
@@ -87,7 +84,7 @@ void main() {
       Dio dio = setUpDio();
       await dio.fetch(req);
       fail("Request should have failed but didnt");
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       error = e.error;
     }
 

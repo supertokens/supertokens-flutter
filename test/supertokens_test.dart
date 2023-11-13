@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/http.dart' as http;
-import 'package:supertokens_flutter/src/anti-csrf.dart';
 import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';

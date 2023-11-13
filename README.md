@@ -86,6 +86,17 @@ void setup() {
 }
 ```
 
+Or use instance method instead.
+
+```dart
+import 'package:supertokens_flutter/dio.dart';
+
+void setup() {
+  Dio dio = Dio();  // Create a Dio instance.
+  dio.addSupertokensInterceptor();
+}
+```
+
 #### Making network requests
 
 ```dart

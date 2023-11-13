@@ -2,10 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:dio_http_formatter/dio_http_formatter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supertokens_flutter/src/dio-interceptor-wrapper.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
+import 'package:supertokens_flutter/dio.dart';
 
 import 'test-utils.dart';
 
@@ -23,17 +23,20 @@ void main() {
     SuperTokens.isInitCalled = false;
     await Future.delayed(Duration(seconds: 1), () {});
   });
-  tearDownAll(() async => await SuperTokensTestUtils.afterAllTest());
+
+  tearDownAll(() => SuperTokensTestUtils.afterAllTest());
 
   Dio setUpDio() {
-    Dio dio = Dio(
+
+    final dio = Dio(
       BaseOptions(
         baseUrl: apiBasePath,
         connectTimeout: Duration(seconds: 5),
         receiveTimeout: Duration(milliseconds: 500),
       ),
-    );
-    dio.interceptors.add(SuperTokensInterceptorWrapper(client: dio));
+    )
+      ..addSupertokensInterceptor(); // Set up dio with cascade operator
+
     return dio;
   }
 
@@ -83,7 +86,7 @@ void main() {
       Dio dio = setUpDio();
       await dio.fetch(req);
       fail("Request should have failed but didnt");
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       error = e.error;
     }
 
@@ -132,31 +135,6 @@ void main() {
     assert(!failed);
   });
 
-  // test('Refresh only get called once after multiple request (Concurrency)',
-  //     () async {
-  //   bool failed = false;
-  //   await SuperTokensTestUtils.startST(validity: 10);
-  //   List<bool> results = [];
-  //   SuperTokens.init(apiDomain: apiBasePath);
-  //   RequestOptions req = SuperTokensTestUtils.getLoginRequestDio();
-  //   Dio dio = setUpDio();
-  //   var resp = await dio.fetch(req);
-  //   if (resp.statusCode != 200) fail("Login req failed");
-  //   List<Future> reqs = [];
-  //   for (int i = 0; i < 300; i++) {
-  //     dio.get("").then((resp) {
-  //       if (resp.statusCode == 200)
-  //         results.add(true);
-  //       else
-  //         results.add(false);
-  //     });
-  //   }
-  //   await Future.wait(reqs);
-  //   int refreshCount = await SuperTokensTestUtils.refreshTokenCounter();
-  //   if (refreshCount != 1 && !results.contains(false) && results.length == 300)
-  //     fail("");
-  // });
-
   test("Test does session exist after user is loggedIn", () async {
     await SuperTokensTestUtils.startST(validity: 1);
     bool sessionExist = false;
@@ -183,33 +161,6 @@ void main() {
       fail("API should have returned session expired (401) but didnt");
     }
   });
-
-  // test("Test other other domains work without Authentication", () async {
-  //   await SuperTokensTestUtils.startST(validity: 1);
-  //   SuperTokens.init(apiDomain: apiBasePath);
-  //   Dio dio = setUpDio();
-  //   Uri fakeGetApi = Uri.parse("https://www.google.com");
-  //   var resp = await http.get(fakeGetApi);
-  //   if (resp.statusCode != 200)
-  //     fail("Unable to make Get API Request to external URL");
-  //   Request req = SuperTokensTestUtils.getLoginRequest();
-  //   StreamedResponse streamedResp;
-  //   streamedResp = await http.send(req);
-  //   var loginResp = await Response.fromStream(streamedResp);
-  //   if (loginResp.statusCode != 200) {
-  //     fail("Login failed");
-  //   }
-  //   resp = await http.get(fakeGetApi);
-  //   if (resp.statusCode != 200)
-  //     fail("Unable to make Get API Request to external URL");
-  //   // logout
-  //   Uri logoutReq = Uri.parse("$apiBasePath/logout");
-  //   var logoutResp = await http.post(logoutReq);
-  //   if (logoutResp.statusCode != 200) fail("Logout req failed");
-  //   resp = await http.get(fakeGetApi);
-  //   if (resp.statusCode != 200)
-  //     fail("Unable to make Get API Request to external URL");
-  // });
 
   test("Test that getAccessToken works correctly", () async {
     await SuperTokensTestUtils.startST(validity: 5);
@@ -266,7 +217,7 @@ void main() {
     }
   });
 
-  test("Test manually adding expired accesstoken works normally", () async {
+  test("Test manually adding expired access token works normally", () async {
     await SuperTokensTestUtils.startST(validity: 3);
     SuperTokens.init(apiDomain: apiBasePath);
 
@@ -313,7 +264,7 @@ void main() {
 
     String? newAccessToken = await SuperTokens.getAccessToken();
 
-    if (accessToken == null) {
+    if (newAccessToken == null) {
       fail("Access token is nil when it shouldnt be");
     }
 
