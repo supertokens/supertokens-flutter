@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.9] - 2023-11-09
+## [0.3.0] - 2023-11-13
 
 - Updated the dio package to version 5.3.3
 - Upgraded the mutex package to version 3.1.0
