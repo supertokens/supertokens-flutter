@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:with_thirdparty/network.dart';
 
@@ -77,12 +78,54 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on DioException {
       print("Google sign in failed");
-    } on Exception catch (e) {
-      print(e);
     }
   }
 
-  Future<void> loginWithGithub() async {}
+  Future<void> loginWithGithub() async {
+    FlutterAppAuth appAuth = FlutterAppAuth();
+
+    var authResult = await appAuth.authorize(AuthorizationRequest(
+      "eee1670bbc37d98c1d30",
+      "com.supertokens.supertokensexample://oauthredirect",
+      serviceConfiguration: const AuthorizationServiceConfiguration(
+        authorizationEndpoint: "https://github.com/login/oauth/authorize",
+        tokenEndpoint: "https://github.com/login/oauth/access_token",
+      ),
+    ));
+
+    if (authResult == null) {
+      print("Github login failed");
+      return;
+    }
+
+    if (authResult.authorizationCode == null) {
+      print("Github did not return an authorization code");
+      return;
+    }
+
+    try {
+      var result = await NetworkManager.instance.client.post(
+        "/auth/signinup",
+        data: {
+          "thirdPartyId": "github",
+          "redirectURIInfo": {
+            "redirectURIOnProviderDashboard": "",
+            "redirectURIQueryParams": {
+              "code": authResult.authorizationCode,
+            },
+          },
+        },
+      );
+
+      if (result.statusCode == 200) {
+        Future.delayed(Duration.zero, () {
+          Navigator.of(context).pushReplacementNamed("/home");
+        });
+      }
+    } on DioException {
+      print("Github sign in failed");
+    }
+  }
 
   Future<void> loginWithApple() async {}
 
@@ -107,12 +150,17 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text("Continue with Github"),
             ),
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: () {
-                loginWithApple();
-              },
-              child: const Text("Continue with Apple"),
-            ),
+            Platform.isIOS
+                ? TextButton(
+                    onPressed: () {
+                      loginWithApple();
+                    },
+                    child: const Text("Continue with Apple"),
+                  )
+                : const SizedBox(
+                    height: 0,
+                    width: 0,
+                  ),
           ],
         ),
       ),
