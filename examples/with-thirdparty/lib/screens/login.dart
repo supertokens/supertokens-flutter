@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart'
+    hide AuthorizationRequest;
 import 'package:with_thirdparty/network.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -127,7 +129,33 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> loginWithApple() async {}
+  Future<void> loginWithApple() async {
+    var credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [AppleIDAuthorizationScopes.email]);
+
+    try {
+      var result = await NetworkManager.instance.client.post(
+        "/auth/signinup",
+        data: {
+          "thirdPartyId": "apple",
+          "redirectURIInfo": {
+            "redirectURIOnProviderDashboard": "",
+            "redirectURIQueryParams": {
+              "code": credential.authorizationCode,
+            },
+          },
+        },
+      );
+
+      if (result.statusCode == 200) {
+        Future.delayed(Duration.zero, () {
+          Navigator.of(context).pushReplacementNamed("/home");
+        });
+      }
+    } on DioException {
+      print("Apple sign in failed");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

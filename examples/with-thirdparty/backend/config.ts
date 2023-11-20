@@ -48,11 +48,12 @@ export const SuperTokensConfig: TypeInput = {
               thirdPartyId: "apple",
               clients: [
                 {
-                  clientId: "APPLE_CLIENT_ID",
+                  clientId: "com.supertokens.withThirdparty",
                   additionalConfig: {
-                    keyId: "APPLE_KEY_ID",
-                    privateKey: "APPLE_PRIVATE_KEY",
-                    teamId: "APPLE_TEAM_ID",
+                    keyId: "7Q5UC29XSG",
+                    privateKey:
+                      "-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgFmP07NkZ2AyK3vtZ2DrMdngyHqlnSfsp/WQeMg8fTwOgCgYIKoZIzj0DAQehRANCAAQBfxgPswjAG7Bg4Hhs797r6a9LCix3ReSo9U6xx4405r2YlvgiPMeSWWLh0XhyzJzYffofmgFIqNbSM68x9yX+\n-----END PRIVATE KEY-----",
+                    teamId: "38FC54NSA3",
                   },
                 },
               ],
