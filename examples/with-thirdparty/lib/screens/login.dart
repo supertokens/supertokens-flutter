@@ -22,18 +22,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (Platform.isAndroid) {
       googleSignIn = GoogleSignIn(
-        serverClientId:
-            "580674050145-shkfcshav895dsoj61vuf6s5iml27glr.apps.googleusercontent.com",
+        serverClientId: "GOOGLE_WEB_CLIENT_ID",
         scopes: [
           'email',
         ],
       );
     } else {
       googleSignIn = GoogleSignIn(
-        clientId:
-            "580674050145-9sik7jl4hh9rtrng6rjpgkgqk6m8kv77.apps.googleusercontent.com",
-        serverClientId:
-            "580674050145-shkfcshav895dsoj61vuf6s5iml27glr.apps.googleusercontent.com",
+        clientId: "GOOGLE_IOS_CLIENT_ID",
+        serverClientId: "GOOGLE_WEB_CLIENT_ID",
         scopes: [
           'email',
         ],
@@ -87,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
     FlutterAppAuth appAuth = FlutterAppAuth();
 
     var authResult = await appAuth.authorize(AuthorizationRequest(
-      "eee1670bbc37d98c1d30",
+      "GITHUB_CLIENT_ID",
       "com.supertokens.supertokensexample://oauthredirect",
       serviceConfiguration: const AuthorizationServiceConfiguration(
         authorizationEndpoint: "https://github.com/login/oauth/authorize",

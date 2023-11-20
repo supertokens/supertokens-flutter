@@ -26,8 +26,8 @@ export const SuperTokensConfig: TypeInput = {
               thirdPartyId: "google",
               clients: [
                 {
-                  clientId: "580674050145-shkfcshav895dsoj61vuf6s5iml27glr.apps.googleusercontent.com",
-                  clientSecret: "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",
+                  clientId: "GOOGLE_WEB_CLIENT_ID",
+                  clientSecret: "GOOGLE_WEB_CLIENT_SECRET",
                 },
               ],
             },
@@ -37,8 +37,8 @@ export const SuperTokensConfig: TypeInput = {
               thirdPartyId: "github",
               clients: [
                 {
-                  clientId: "eee1670bbc37d98c1d30",
-                  clientSecret: "9b0c5134a89ba98a813adb72e56d9765dd36c966",
+                  clientId: "GITHUB_CLIENT_ID",
+                  clientSecret: "GITHUB_CLIENT_SECRET",
                 },
               ],
             },
@@ -48,12 +48,12 @@ export const SuperTokensConfig: TypeInput = {
               thirdPartyId: "apple",
               clients: [
                 {
-                  clientId: "com.supertokens.withThirdparty",
+                  clientId: "APPLE_CLIENT_ID",
                   additionalConfig: {
-                    keyId: "7Q5UC29XSG",
+                    keyId: "APPLE_KEY_ID",
                     privateKey:
-                      "-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgFmP07NkZ2AyK3vtZ2DrMdngyHqlnSfsp/WQeMg8fTwOgCgYIKoZIzj0DAQehRANCAAQBfxgPswjAG7Bg4Hhs797r6a9LCix3ReSo9U6xx4405r2YlvgiPMeSWWLh0XhyzJzYffofmgFIqNbSM68x9yX+\n-----END PRIVATE KEY-----",
-                    teamId: "38FC54NSA3",
+                      "APPLE_PRIVATE_KEY",
+                    teamId: "APPLE_TEAM_ID",
                   },
                 },
               ],

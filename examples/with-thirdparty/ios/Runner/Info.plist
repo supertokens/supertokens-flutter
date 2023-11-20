@@ -8,7 +8,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.supertokens.supertokensexample</string>
-				<string>com.googleusercontent.apps.580674050145-9sik7jl4hh9rtrng6rjpgkgqk6m8kv77</string>
+				<string>GOOGLE_IOS_URL_SCHEME</string>
 			</array>
 		</dict>
 	</array>
