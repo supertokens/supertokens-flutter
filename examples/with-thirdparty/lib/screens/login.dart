@@ -108,7 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
         data: {
           "thirdPartyId": "github",
           "redirectURIInfo": {
-            "redirectURIOnProviderDashboard": "",
+            "redirectURIOnProviderDashboard":
+                "com.supertokens.supertokensexample://oauthredirect",
             "redirectURIQueryParams": {
               "code": authResult.authorizationCode,
             },
