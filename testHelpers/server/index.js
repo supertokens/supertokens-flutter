@@ -32,6 +32,7 @@ let customRefreshHeaderValue = "";
 let supertokens_node_version = require("supertokens-node/lib/build/version").version;
 let Querier = require("supertokens-node/lib/build/querier").Querier;
 let NormalisedURLPath = require("supertokens-node/lib/build/normalisedURLPath").default;
+let UserMetaDataRecipeRaw = require("supertokens-node/lib/build/recipe/usermetadata/recipe").default;
 
 let Multitenancy, MultitenancyRaw, multitenancySupported;
 try {
@@ -145,10 +146,10 @@ function getConfig(enableAntiCsrf, enableJWT, jwtPropertyName) {
                                 refreshPOST: undefined
                             };
                         },
-                        functions: function(oI) {
+                        functions: function (oI) {
                             return {
                                 ...oI,
-                                createNewSession: async function({ res, userId, accessTokenPayload, sessionData }) {
+                                createNewSession: async function ({ res, userId, accessTokenPayload, sessionData }) {
                                     accessTokenPayload = {
                                         ...accessTokenPayload,
                                         customClaim: "customValue"
@@ -210,7 +211,7 @@ app.use(middleware());
 
 app.post("/login", async (req, res) => {
     let userId = req.body.userId;
-    
+
     let session;
     if (multitenancySupported) {
         session = await Session.createNewSession(req, res, "public", accountLinkingSupported ? SuperTokens.convertToRecipeUserId(userId) : userId);
@@ -239,6 +240,7 @@ app.post("/startst", async (req, res) => {
     if (enableAntiCsrf !== undefined) {
         SuperTokensRaw.reset();
         SessionRecipeRaw.reset();
+        UserMetaDataRecipeRaw.reset();
 
         if (multitenancySupported) {
             MultitenancyRaw.reset();
@@ -267,6 +269,7 @@ app.post("/reinitialiseBackendConfig", async (req, res) => {
 
     SuperTokensRaw.reset();
     SessionRecipeRaw.reset();
+    UserMetaDataRecipeRaw.reset();
     SuperTokens.init(getConfig(lastSetEnableAntiCSRF, currentEnableJWT, jwtPropertyName));
 
     res.send("");
@@ -550,9 +553,9 @@ app.post("/logout-alt", async (req, res) => {
 app.get("/base-custom-auth", async (req, res) => {
     let header = req.headers["authorization"];
     if (header === "Bearer myOwnHeHe") {
-        return res.status(200).json({message: "OK"});
+        return res.status(200).json({ message: "OK" });
     } else {
-        return res.status(500).json({message: "Bad auth header"});
+        return res.status(500).json({ message: "Bad auth header" });
     }
 })
 
