@@ -31,7 +31,7 @@ class FrontToken {
 
   static Map<String, dynamic> _parseFrontToken(fronTokenDecoded) {
     var base64Decoded = base64Decode(fronTokenDecoded);
-    String decodedString = new String.fromCharCodes(base64Decoded);
+    String decodedString = utf8.decode(base64Decoded);
     var result = jsonDecode(decodedString);
     return result;
   }
