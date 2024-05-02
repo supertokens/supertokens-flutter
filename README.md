@@ -50,7 +50,7 @@ Future<void> makeRequest() {
 }
 ```
 
-The SuperTokens SDK will handle session expiry and automatic refreshing for you.
+The SuperTokens SDK will handle session expiry and automatic refreshing for you. When calling authentication APIs such as signin or signup, the SDK automatically captures the access- and refresh tokens from the headers and saves them for you.
 
 #### Using a custom `http` Client
 
@@ -143,10 +143,13 @@ Future<void> manualRefresh() async {
 ```
 
 ## Contributing
+
 Please refer to the [CONTRIBUTING.md](https://github.com/supertokens/supertokens-flutter/blob/master/CONTRIBUTING.md) file in this repo.
 
 ## Contact us
+
 For any queries, or support requests, please email us at team@supertokens.com, or join our [Discord](supertokens.com/discord) server.
 
 ## Authors
+
 Created with :heart: by the folks at SuperTokens.com.
