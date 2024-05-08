@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2024-05-08
 
+### Fixes
+- Fixed missing payload encoding conversion (from UTF-8 to UTF-16)
+
 ### Breaking changes
 
 The `shouldDoInterceptions` function now returns true: 
