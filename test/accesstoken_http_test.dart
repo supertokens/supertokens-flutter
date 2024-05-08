@@ -65,6 +65,23 @@ void main() {
     }
   });
 
+  test("should convert utf-8 access token payload to utf-16", () async {
+    await SuperTokensTestUtils.startST(validity: 3);
+    SuperTokens.init(apiDomain: apiBasePath);
+    Request req = SuperTokensTestUtils.getLoginRequestUtf8Encoded();
+    StreamedResponse streamedResp;
+    streamedResp = await http.send(req);
+    var resp = await Response.fromStream(streamedResp);
+    if (resp.statusCode != 200) {
+      fail("login failed");
+    }
+
+    var payload = await SuperTokens.getAccessTokenPayloadSecurely();
+    assert(payload.length == 1);
+    assert(payload["name"] == "öäü-áàâ");
+    assert(payload["name"] == "\u00f6\u00e4\u00fc\u002d\u00e1\u00e0\u00e2");
+  });
+
   test("should be able to refresh a session started w/ CDI 2.18", () async {
     await SuperTokensTestUtils.startST(validity: 3);
     SuperTokens.init(apiDomain: apiBasePath);
