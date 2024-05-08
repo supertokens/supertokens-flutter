@@ -187,51 +187,33 @@ class Utils {
     }
 
     var domain = hostname;
+    var apiDomainAndInputDomainMatch = false;
 
-    if (cookieDomain == null) {
-      domain = [80, 443, 0].contains(urlObject.port)
-          ? domain.contains(urlObject.port.toString())
-              ? hostname + ":${urlObject.port}"
-              : hostname
-          : hostname + ":${urlObject.port}";
-
+    if (!apiDomain.isEmpty) {
       _apiDomain = NormalisedURLDomain(apiDomain).value;
-      Uri apiUrlObject;
-      String apiHostName;
-      try {
-        apiUrlObject = Uri.parse(_apiDomain);
-        apiHostName = apiUrlObject.host;
-      } catch (e) {
-        throw SuperTokensException(e.toString());
-      }
+      apiDomainAndInputDomainMatch = domain == _apiDomain;
+    }
 
-      String temp = [80, 443, 0].contains(apiUrlObject.port)
-          ? apiHostName.contains(apiUrlObject.port.toString())
-              ? apiHostName + ":${apiUrlObject.port}"
-              : apiHostName
-          : apiHostName + ":${apiUrlObject.port}";
-
-      return domain == temp;
+    if (cookieDomain == null || apiDomainAndInputDomainMatch) {
+      return apiDomainAndInputDomainMatch;
     } else {
       String normalisedCookieDomain =
           NormalisedInputType.normaliseSessionScopeOrThrowError(cookieDomain);
-      if (cookieDomain.split(":").length > 1) {
-        String portString =
-            cookieDomain.split(':')[cookieDomain.split(':').length - 1];
-        if (![80, 443, 0].contains(portString)) {
-          normalisedCookieDomain = normalisedCookieDomain + ':' + portString;
-          domain = urlObject.port == null
-              ? domain
-              : domain + ':' + urlObject.port.toString();
-        }
-      }
+      return matchesDomainOrSubdomain(domain, normalisedCookieDomain);
+    }
+  }
 
-      if (cookieDomain.startsWith('.')) {
-        return ("." + domain).endsWith(normalisedCookieDomain);
-      } else {
-        return domain == normalisedCookieDomain;
+  static bool matchesDomainOrSubdomain(String hostname, String str) {
+    List<String> parts = hostname.split(".");
+
+    for (int i = 0; i < parts.length; i++) {
+      String subdomainCandidate = parts.sublist(i).join(".");
+      if (subdomainCandidate == str || ".$subdomainCandidate" == str) {
+        return true;
       }
     }
+
+    return false;
   }
 
   static bool doesUrlHavePort(Uri uri) {
@@ -429,7 +411,7 @@ class NormalisedInputType {
   }
 
   static String sessionScopeHelper(String SessionScope) {
-    String trimmedSessionScope = SessionScope.trim();
+    String trimmedSessionScope = SessionScope.trim().toLowerCase();
     if (trimmedSessionScope.startsWith('.')) {
       trimmedSessionScope = trimmedSessionScope.substring(1);
     }
@@ -443,9 +425,6 @@ class NormalisedInputType {
       Uri url = Uri.parse(trimmedSessionScope);
       String host = url.host;
       trimmedSessionScope = host;
-      if (trimmedSessionScope.startsWith('.')) {
-        trimmedSessionScope = trimmedSessionScope.substring(1);
-      }
       return trimmedSessionScope;
     } catch (e) {
       throw SuperTokensException("Please provide a valid SessionScope");
