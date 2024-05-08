@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supertokens_flutter/src/normalised-url-domain.dart';
 import 'package:supertokens_flutter/src/normalised-url-path.dart';
+import 'package:supertokens_flutter/src/utilities.dart';
 
 void main() {
   group('Normalise URL Path :: ', () {
@@ -407,5 +408,347 @@ void main() {
           "http://localhost.org:8080");
       expect(out, "http://localhost.org:8080");
     });
+  });
+
+  test("shouldDoInterceptionTests", () {
+    // true cases without cookieDomain
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "api.example.com", "https://api.example.com", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://api.example.com", "http://api.example.com", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "api.example.com", "http://api.example.com", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://api.example.com", "http://api.example.com", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions("https://api.example.com:3000",
+            "http://api.example.com:3000", null));
+    expect(true,
+        Utils.shouldDoInterceptions("localhost:3000", "localhost:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://localhost:3000", "https://localhost:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://localhost:3000", "https://localhost:3001", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost:3000", "http://localhost:3001", null));
+    expect(true,
+        Utils.shouldDoInterceptions("localhost:3000", "localhost:3001", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost:3000", "http://localhost:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "localhost:3000", "https://localhost:3000", null));
+    expect(true,
+        Utils.shouldDoInterceptions("localhost", "https://localhost", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost:3000", "https://localhost:3000", null));
+    expect(true,
+        Utils.shouldDoInterceptions("127.0.0.1:3000", "127.0.0.1:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://127.0.0.1:3000", "https://127.0.0.1:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://127.0.0.1:3000", "http://127.0.0.1:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "127.0.0.1:3000", "https://127.0.0.1:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://127.0.0.1:3000", "https://127.0.0.1:3000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://127.0.0.1", "https://127.0.0.1", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost.org", "localhost.org", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost.org", "http://localhost.org", null));
+
+    // true cases with cookieDomain
+    expect(true,
+        Utils.shouldDoInterceptions("api.example.com", "", "api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://api.example.com", "", "http://api.example.com"));
+    expect(true,
+        Utils.shouldDoInterceptions("api.example.com", "", ".example.com"));
+    expect(true,
+        Utils.shouldDoInterceptions("api.example.com", "", "example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://api.example.com", "", "http://api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://api.example.com", "", "https://api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com", "", ".sub.api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com", "", "sub.api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com", "", ".api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com", "", "api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com", "", ".example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com", "", "example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com:3000", "", ".example.com:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com:3000", "", "example.com:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com:3000", "", ".example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com:3000", "", "example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions("https://sub.api.example.com:3000", "",
+            "https://sub.api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://api.example.com:3000", "", ".api.example.com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://api.example.com:3000", "", "api.example.com"));
+    expect(true,
+        Utils.shouldDoInterceptions("localhost:3000", "", "localhost:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://localhost:3000", "", ".localhost:3000"));
+    expect(true, Utils.shouldDoInterceptions("localhost", "", "localhost"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://a.localhost:3000", "", ".localhost:3000"));
+    expect(true,
+        Utils.shouldDoInterceptions("127.0.0.1:3000", "", "127.0.0.1:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://127.0.0.1:3000", "", "https://127.0.0.1:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://127.0.0.1:3000", "", "http://127.0.0.1:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "127.0.0.1:3000", "", "https://127.0.0.1:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://127.0.0.1:3000", "", "https://127.0.0.1:3000"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://127.0.0.1", "", "https://127.0.0.1"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost.org", "", ".localhost.org"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost.org", "", "localhost.org"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com:3000", "", ".com"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.co.uk:3000", "", ".api.example.co.uk"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub1.api.example.co.uk:3000", "", ".api.example.co.uk"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://api.example.co.uk:3000", "", ".api.example.co.uk"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://api.example.co.uk:3000", "", "api.example.co.uk"));
+    expect(true,
+        Utils.shouldDoInterceptions("localhost:3000", "localhost:8080", null));
+    expect(
+        true, Utils.shouldDoInterceptions("localhost:3001", "localhost", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions("https://api.example.com:3002",
+            "https://api.example.com:3001", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost.org", "localhost.org:2000", null));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost.org", "localhost", "localhost.org"));
+    expect(true,
+        Utils.shouldDoInterceptions("localhost", "localhost", "localhost.org"));
+    expect(
+        true, Utils.shouldDoInterceptions("localhost", "", "localhost:8080"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://localhost:80", "", "localhost:8080"));
+    expect(true,
+        Utils.shouldDoInterceptions("localhost:3000", "", "localhost:8080"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "https://sub.api.example.com:3000", "", ".example.com:3001"));
+    expect(
+        true,
+        Utils.shouldDoInterceptions(
+            "http://127.0.0.1:3000", "", "https://127.0.0.1:3010"));
+
+    // false cases with api
+    expect(
+        true, !Utils.shouldDoInterceptions("localhost", "localhost.org", null));
+    expect(true,
+        !Utils.shouldDoInterceptions("google.com", "localhost.org", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "http://google.com", "localhost.org", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://google.com", "localhost.org", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://google.com:8080", "localhost.org", null));
+    expect(true,
+        !Utils.shouldDoInterceptions("localhost:3001", "example.com", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://example.com", "https://api.example.com", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://api.example.com", "https://a.api.example.com", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://api.example.com", "https://a.api.example.com:3000", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://api.example.com", "https://example.com", null));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://example.com:3001", "https://api.example.com:3001", null));
+
+    // false cases with cookieDomain
+    expect(
+        true, !Utils.shouldDoInterceptions("localhost", "", "localhost.org"));
+    expect(
+        true, !Utils.shouldDoInterceptions("google.com", "", "localhost.org"));
+    expect(true,
+        !Utils.shouldDoInterceptions("http://google.com", "", "localhost.org"));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://google.com", "", "localhost.org"));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://google.com:8080", "", "localhost.org"));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://api.example.com:3000", "", ".a.api.example.com"));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "https://sub.api.example.com:3000", "", "localhost"));
+    expect(true,
+        !Utils.shouldDoInterceptions("http://localhost.org", "", "localhost"));
+    expect(true,
+        !Utils.shouldDoInterceptions("http://localhost.org", "", ".localhost"));
+    expect(
+        true,
+        !Utils.shouldDoInterceptions(
+            "http://localhost.org", "", "localhost:2000"));
+
+    // errors in input
+    try {
+      Utils.shouldDoInterceptions("/some/path", "", "api.example.co.uk");
+      expect(true, false);
+    } on Exception catch (err) {
+      if (err.toString() != "Please provide a valid domain name") {
+        throw err;
+      }
+    }
+    try {
+      expect(true,
+          Utils.shouldDoInterceptions("/some/path", "api.example.co.uk", null));
+      expect(true, false);
+    } on Exception catch (err) {
+      if (err.toString() != "Please provide a valid domain name") {
+        throw err;
+      }
+    }
   });
 }
