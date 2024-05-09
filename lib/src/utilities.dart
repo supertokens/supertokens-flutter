@@ -417,7 +417,7 @@ class NormalisedInputType {
       trimmedSessionScope = trimmedSessionScope.substring(1);
     }
 
-    if (!trimmedSessionScope.startsWith('https://') &&
+    if (!trimmedSessionScope.startsWith('http://') &&
         !trimmedSessionScope.startsWith('https://')) {
       trimmedSessionScope = "https://" + trimmedSessionScope;
     }

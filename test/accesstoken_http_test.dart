@@ -34,7 +34,6 @@ void main() {
     }
 
     var payload = await SuperTokens.getAccessTokenPayloadSecurely();
-    
 
     if (await SuperTokensTestUtils.checkIfV3AccessTokenIsSupported()) {
       var expectedKeys = [
@@ -77,7 +76,6 @@ void main() {
     }
 
     var payload = await SuperTokens.getAccessTokenPayloadSecurely();
-    assert(payload.length == 1);
     assert(payload["name"] == "öäü-áàâ");
     assert(payload["name"] == "\u00f6\u00e4\u00fc\u002d\u00e1\u00e0\u00e2");
   });

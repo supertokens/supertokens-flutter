@@ -72,9 +72,10 @@ class SuperTokensTestUtils {
     var loginAPIURL = "$baseUrl/login";
     var request = http.Request('POST', Uri.parse(loginAPIURL));
     request.headers['Content-Type'] = "application/json; charset=utf-8";
-    var body = {"userId": "supertokens-flutter-tests", "payload": {
-      "name": "\xc3\xb6\xc3\xa4\xc3\xbc\x2d\xc3\xa1\xc3\xa0\xc3\xa2" // UTF-8 encoded öäü-áàâ
-    }};
+    var body = {
+      "userId": "supertokens-flutter-tests",
+      "payload": {"name": "öäü-áàâ"}
+    };
     var jsonBody = jsonEncode(body);
     request.body = jsonBody;
     return request;
@@ -84,7 +85,10 @@ class SuperTokensTestUtils {
     var loginAPIURL = "$baseUrl/login-2.18";
     var request = http.Request('POST', Uri.parse(loginAPIURL));
     request.headers['Content-Type'] = "application/json; charset=utf-8";
-    var body = {"userId": "supertokens-flutter-tests", "payload": {"asdf": 1}};
+    var body = {
+      "userId": "supertokens-flutter-tests",
+      "payload": {"asdf": 1}
+    };
     var jsonBody = jsonEncode(body);
     request.body = jsonBody;
     return request;
@@ -116,7 +120,10 @@ class SuperTokensTestUtils {
       path: loginAPIURL,
       method: 'POST',
       headers: {'Content-Type': 'application/json; charset=utf-8'},
-      data: {"userId": "supertokens-ios-tests", "payload": {"asdf": 1}},
+      data: {
+        "userId": "supertokens-ios-tests",
+        "payload": {"asdf": 1}
+      },
     );
     return reqOptions;
   }
