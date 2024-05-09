@@ -191,7 +191,8 @@ class Utils {
 
     if (!apiDomain.isEmpty) {
       _apiDomain = NormalisedURLDomain(apiDomain).value;
-      apiDomainAndInputDomainMatch = domain == _apiDomain;
+      Uri apiDomainUrlObj = Uri.parse(_apiDomain);
+      apiDomainAndInputDomainMatch = domain == apiDomainUrlObj.host;
     }
 
     if (cookieDomain == null || apiDomainAndInputDomainMatch) {

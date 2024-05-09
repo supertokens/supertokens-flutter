@@ -53,6 +53,11 @@ We're so excited you're interested in helping with SuperTokens! We are happy to 
    flutter test --concurrency=1
    ```
 
+   If you want to run just one test, you can run the following command:
+   ```
+   flutter test --concurrency=1 test/supertokens_test.dart --name 'Test custom headers for refreshAPI'
+   ```
+
 ## Pull Request
 1. Before submitting a pull request make sure all tests have passed
 2. Reference the relevant issue or pull request and give a clear description of changes/features added when submitting a pull request

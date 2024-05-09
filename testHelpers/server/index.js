@@ -25,6 +25,7 @@ let { startST, stopST, killAllST, setupST, cleanST, setKeyValueInConfig, maxVers
 let { middleware, errorHandler } = require("supertokens-node/framework/express");
 let { verifySession } = require("supertokens-node/recipe/session/framework/express");
 const { spawnSync } = require("child_process");
+const { debug } = require("console");
 let noOfTimesRefreshCalledDuringTest = 0;
 let noOfTimesGetSessionCalledDuringTest = 0;
 let noOfTimesRefreshAttemptedDuringTest = 0;
@@ -216,8 +217,8 @@ app.post("/login", async (req, res) => {
 
     if (multitenancySupported) {
         session = await Session.createNewSession(req, res, "public",
-        accountLinkingSupported ? SuperTokens.convertToRecipeUserId(userId) : userId,
-        accessTokenPayload);
+            accountLinkingSupported ? SuperTokens.convertToRecipeUserId(userId) : userId,
+            accessTokenPayload);
     } else {
         session = await Session.createNewSession(req, res, userId, accessTokenPayload);
     }
@@ -570,7 +571,7 @@ app.use("*", async (req, res, next) => {
 app.use(errorHandler());
 
 app.use(async (err, req, res, next) => {
-    res.send(500).send(err);
+    res.status(500).send(err);
 });
 
 let server = http.createServer(app);

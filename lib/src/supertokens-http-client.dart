@@ -162,9 +162,12 @@ class Client extends http.BaseClient {
         authValue = mutableRequest.headers["authorization"];
       }
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
-      String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+      String? refreshToken =
+          await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
 
-      if (accessToken != null && refreshToken != null && authValue == "Bearer $accessToken") {
+      if (accessToken != null &&
+          refreshToken != null &&
+          authValue == "Bearer $accessToken") {
         mutableRequest.headers.remove("Authorization");
         mutableRequest.headers.remove("authorization");
       }
@@ -215,8 +218,9 @@ class Client extends http.BaseClient {
           await Client.cookieStore?.getCookieHeaderStringForRequest(refreshUrl);
       refreshReq.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
       SuperTokensTokenTransferMethod tokenTransferMethod =
-              SuperTokens.config.tokenTransferMethod;
-      refreshReq.headers.addAll({'st-auth-mode': tokenTransferMethod.getValue()});
+          SuperTokens.config.tokenTransferMethod;
+      refreshReq.headers
+          .addAll({'st-auth-mode': tokenTransferMethod.getValue()});
       refreshReq =
           SuperTokens.config.preAPIHook(APIAction.REFRESH_TOKEN, refreshReq);
       var resp = await refreshReq.send();
