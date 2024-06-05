@@ -317,6 +317,7 @@ class NormalisedInputType {
   late String apiDomain;
   late String? apiBasePath;
   late int sessionExpiredStatusCode = 401;
+  late int maxRetryAttemptsForSessionRefresh = 10;
   late String? sessionTokenBackendDomain;
   late SuperTokensTokenTransferMethod tokenTransferMethod;
   late String? userDefaultSuiteName;
@@ -328,6 +329,13 @@ class NormalisedInputType {
     String apiDomain,
     String? apiBasePath,
     int sessionExpiredStatusCode,
+    /**
+     * This specifies the maximum number of times the interceptor will attempt to refresh
+     * the session  when a 401 Unauthorized response is received. If the number of retries
+     * exceeds this limit, no further attempts will be made to refresh the session, and
+     * and an error will be thrown.
+     */
+    int maxRetryAttemptsForSessionRefresh,
     String? sessionTokenBackendDomain,
     SuperTokensTokenTransferMethod tokenTransferMethod,
     Function(Eventype)? eventHandler,
@@ -337,6 +345,7 @@ class NormalisedInputType {
     this.apiDomain = apiDomain;
     this.apiBasePath = apiBasePath;
     this.sessionExpiredStatusCode = sessionExpiredStatusCode;
+    this.maxRetryAttemptsForSessionRefresh = maxRetryAttemptsForSessionRefresh;
     this.sessionTokenBackendDomain = sessionTokenBackendDomain;
     this.tokenTransferMethod = tokenTransferMethod;
     this.eventHandler = eventHandler!;
@@ -348,6 +357,7 @@ class NormalisedInputType {
     String apiDomain,
     String? apiBasePath,
     int? sessionExpiredStatusCode,
+    int? maxRetryAttemptsForSessionRefresh,
     String? sessionTokenBackendDomain,
     SuperTokensTokenTransferMethod? tokenTransferMethod,
     Function(Eventype)? eventHandler,
@@ -362,6 +372,10 @@ class NormalisedInputType {
     var _sessionExpiredStatusCode = 401;
     if (sessionExpiredStatusCode != null)
       _sessionExpiredStatusCode = sessionExpiredStatusCode;
+
+    var _maxRetryAttemptsForSessionRefresh = 10;
+    if (maxRetryAttemptsForSessionRefresh != null)
+      _maxRetryAttemptsForSessionRefresh = maxRetryAttemptsForSessionRefresh;
 
     String? _sessionTokenBackendDomain = null;
     if (sessionTokenBackendDomain != null) {
@@ -390,6 +404,7 @@ class NormalisedInputType {
         _apiDOmain.value,
         _apiBasePath.value,
         _sessionExpiredStatusCode,
+        _maxRetryAttemptsForSessionRefresh,
         _sessionTokenBackendDomain,
         _tokenTransferMethod,
         _eventHandler,

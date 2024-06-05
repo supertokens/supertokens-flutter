@@ -7,5 +7,5 @@ class Version {
     "2.0",
     "3.0"
   ];
-  static String sdkVersion = "0.5.1";
+  static String sdkVersion = "0.6.0";
 }
