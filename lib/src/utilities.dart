@@ -367,15 +367,19 @@ class NormalisedInputType {
     var _apiDOmain = NormalisedURLDomain(apiDomain);
     var _apiBasePath = NormalisedURLPath("/auth");
 
-    if (apiBasePath != null) _apiBasePath = NormalisedURLPath(apiBasePath);
+    if (apiBasePath != null) {
+      _apiBasePath = NormalisedURLPath(apiBasePath);
+    }
 
     var _sessionExpiredStatusCode = 401;
-    if (sessionExpiredStatusCode != null)
+    if (sessionExpiredStatusCode != null) {
       _sessionExpiredStatusCode = sessionExpiredStatusCode;
+    }
 
     var _maxRetryAttemptsForSessionRefresh = 10;
-    if (maxRetryAttemptsForSessionRefresh != null)
+    if (maxRetryAttemptsForSessionRefresh != null) {
       _maxRetryAttemptsForSessionRefresh = maxRetryAttemptsForSessionRefresh;
+    }
 
     String? _sessionTokenBackendDomain = null;
     if (sessionTokenBackendDomain != null) {
@@ -390,15 +394,21 @@ class NormalisedInputType {
     }
 
     Function(Eventype)? _eventHandler = (_) => {};
-    if (eventHandler != null) _eventHandler = eventHandler;
+    if (eventHandler != null) {
+      _eventHandler = eventHandler;
+    }
 
     http.Request Function(APIAction, http.Request)? _preAPIHook =
         (_, request) => request;
-    if (preAPIHook != null) _preAPIHook = preAPIHook;
+    if (preAPIHook != null) {
+      _preAPIHook = preAPIHook;
+    }
 
     Function(APIAction, http.Request, http.Response) _postAPIHook =
         (_, __, ___) => null;
-    if (postAPIHook != null) _postAPIHook = postAPIHook;
+    if (postAPIHook != null) {
+      _postAPIHook = postAPIHook;
+    }
 
     return NormalisedInputType(
         _apiDOmain.value,
