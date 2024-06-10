@@ -499,6 +499,10 @@ app.get("/testError", (req, res) => {
     res.status(500).send("test error message");
 });
 
+app.get("/throw-401", (req, res) => {
+    res.status(401).send("Unauthorised");
+});
+
 app.get("/stop", async (req, res) => {
     process.exit();
 });

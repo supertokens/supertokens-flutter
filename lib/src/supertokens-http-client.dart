@@ -17,6 +17,13 @@ import 'constants.dart';
 /// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [Client], pass [http.Client()] to use the default.
 ReadWriteMutex _refreshAPILock = ReadWriteMutex();
 
+class CustomRequest {
+  http.BaseRequest request;
+  int sessionRefreshAttempts;
+
+  CustomRequest(this.request, this.sessionRefreshAttempts);
+}
+
 class Client extends http.BaseClient {
   Client({http.Client? client}) {
     if (client != null) {
@@ -36,6 +43,11 @@ class Client extends http.BaseClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    return await _sendWithRetry(CustomRequest(request, 0));
+  }
+
+  Future<http.StreamedResponse> _sendWithRetry(
+      CustomRequest customRequest) async {
     if (Client.cookieStore == null) {
       Client.cookieStore = SuperTokensCookieStore();
     }
@@ -45,21 +57,21 @@ class Client extends http.BaseClient {
           "SuperTokens.initialise must be called before using Client");
     }
 
-    if (SuperTokensUtils.getApiDomain(request.url.toString()) !=
+    if (SuperTokensUtils.getApiDomain(customRequest.request.url.toString()) !=
         SuperTokens.config.apiDomain) {
-      return _innerClient.send(request);
+      return _innerClient.send(customRequest.request);
     }
 
-    if (SuperTokensUtils.getApiDomain(request.url.toString()) ==
+    if (SuperTokensUtils.getApiDomain(customRequest.request.url.toString()) ==
         SuperTokens.refreshTokenUrl) {
-      return _innerClient.send(request);
+      return _innerClient.send(customRequest.request);
     }
 
     if (!Utils.shouldDoInterceptions(
-        request.url.toString(),
+        customRequest.request.url.toString(),
         SuperTokens.config.apiDomain,
         SuperTokens.config.sessionTokenBackendDomain)) {
-      return _innerClient.send(request);
+      return _innerClient.send(customRequest.request);
     }
 
     try {
@@ -70,7 +82,7 @@ class Client extends http.BaseClient {
         LocalSessionState preRequestLocalSessionState;
         http.StreamedResponse response;
         try {
-          copiedRequest = SuperTokensUtils.copyRequest(request);
+          copiedRequest = SuperTokensUtils.copyRequest(customRequest.request);
           copiedRequest =
               await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
           preRequestLocalSessionState =
@@ -127,12 +139,26 @@ class Client extends http.BaseClient {
         }
 
         if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
-          request = await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
+          /**
+           * An API may return a 401 error response even with a valid session, causing a session refresh loop in the interceptor.
+           * To prevent this infinite loop, we break out of the loop after retrying the original request a specified number of times.
+           * The maximum number of retry attempts is defined by maxRetryAttemptsForSessionRefresh config variable.
+           */
+          if (customRequest.sessionRefreshAttempts >=
+              SuperTokens.config.maxRetryAttemptsForSessionRefresh) {
+            throw SuperTokensException(
+                "Received a 401 response from ${customRequest.request.url}. Attempted to refresh the session and retry the request with the updated session tokens ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} times, but each attempt resulted in a 401 error. The maximum session refresh limit has been reached. Please investigate your API. To increase the session refresh attempts, update maxRetryAttemptsForSessionRefresh in the config.");
+          }
+          customRequest.sessionRefreshAttempts++;
+
+          customRequest.request =
+              await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
+
           UnauthorisedResponse shouldRetry =
               await onUnauthorisedResponse(preRequestLocalSessionState);
           if (shouldRetry.status == UnauthorisedStatus.RETRY) {
             // Here we use the original request because it wont contain any of the modifications we make
-            return await send(request);
+            return await _sendWithRetry(customRequest);
           } else {
             if (shouldRetry.exception != null) {
               throw SuperTokensException(shouldRetry.exception!.message);

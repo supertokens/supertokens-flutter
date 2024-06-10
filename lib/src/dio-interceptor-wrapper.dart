@@ -112,13 +112,38 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     try {
       if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
+        /**
+         * An API may return a 401 error response even with a valid session, causing a session refresh loop in the interceptor.
+         * To prevent this infinite loop, we break out of the loop after retrying the original request a specified number of times.
+         * The maximum number of retry attempts is defined by maxRetryAttemptsForSessionRefresh config variable.
+         */
         RequestOptions requestOptions = response.requestOptions;
+        int sessionRefreshAttempts =
+            requestOptions.extra["__supertokensSessionRefreshAttempts"] ?? 0;
+        if (sessionRefreshAttempts >=
+            SuperTokens.config.maxRetryAttemptsForSessionRefresh) {
+          handler.reject(
+            DioException(
+              requestOptions: response.requestOptions,
+              type: DioExceptionType.unknown,
+              error: SuperTokensException(
+                  "Received a 401 response from ${response.requestOptions.uri}. Attempted to refresh the session and retry the request with the updated session tokens ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} times, but each attempt resulted in a 401 error. The maximum session refresh limit has been reached. Please investigate your API. To increase the session refresh attempts, update maxRetryAttemptsForSessionRefresh in the config."),
+            ),
+          );
+          _refreshAPILock.release();
+          return;
+        }
+
         requestOptions =
             await _removeAuthHeaderIfMatchesLocalToken(requestOptions);
         UnauthorisedResponse shouldRetry =
             await Client.onUnauthorisedResponse(_preRequestLocalSessionState);
         if (shouldRetry.status == UnauthorisedStatus.RETRY) {
           requestOptions.headers[HttpHeaders.cookieHeader] = userSetCookie;
+
+          requestOptions.extra["__supertokensSessionRefreshAttempts"] =
+              sessionRefreshAttempts + 1;
+
           Response<dynamic> res = await client.fetch(requestOptions);
           List<dynamic>? setCookieFromResponse =
               res.headers.map[HttpHeaders.setCookieHeader];

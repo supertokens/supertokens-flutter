@@ -41,6 +41,7 @@ class SuperTokens {
   static void init({
     required String apiDomain,
     String? apiBasePath,
+    int? maxRetryAttemptsForSessionRefresh,
     int sessionExpiredStatusCode = 401,
     String? sessionTokenBackendDomain,
     SuperTokensTokenTransferMethod? tokenTransferMethod,
@@ -56,6 +57,7 @@ class SuperTokens {
       apiDomain,
       apiBasePath,
       sessionExpiredStatusCode,
+      maxRetryAttemptsForSessionRefresh,
       sessionTokenBackendDomain,
       tokenTransferMethod,
       eventHandler,
