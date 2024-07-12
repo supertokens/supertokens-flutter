@@ -4,6 +4,7 @@ import 'package:mutex/mutex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
+import 'package:supertokens_flutter/src/anti-csrf.dart';
 
 class FrontToken {
   static String? tokenInMemory;
@@ -148,6 +149,7 @@ class FrontToken {
     await _removeTokenFromStorage();
     await Utils.setToken(TokenType.ACCESS, "");
     await Utils.setToken(TokenType.REFRESH, "");
+    await AntiCSRF.removeToken()
     if (_tokenInfoMutex.isLocked) {
       _tokenInfoMutex.release();
     }

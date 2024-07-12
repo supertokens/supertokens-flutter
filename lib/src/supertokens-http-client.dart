@@ -74,107 +74,98 @@ class Client extends http.BaseClient {
       return _innerClient.send(customRequest.request);
     }
 
-    try {
-      while (true) {
-        await _refreshAPILock.acquireRead();
-        // http package does not allow retries with the same request object, so we clone the request when making the network call
-        http.BaseRequest copiedRequest;
-        LocalSessionState preRequestLocalSessionState;
-        http.StreamedResponse response;
-        try {
-          copiedRequest = SuperTokensUtils.copyRequest(customRequest.request);
-          copiedRequest =
-              await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
-          preRequestLocalSessionState =
-              await SuperTokensUtils.getLocalSessionState();
-          String? antiCSRFToken = await AntiCSRF.getToken(
-              preRequestLocalSessionState.lastAccessTokenUpdate);
+    while (true) {
+      await _refreshAPILock.acquireRead();
+      // http package does not allow retries with the same request object, so we clone the request when making the network call
+      http.BaseRequest copiedRequest;
+      LocalSessionState preRequestLocalSessionState;
+      http.StreamedResponse response;
+      try {
+        copiedRequest = SuperTokensUtils.copyRequest(customRequest.request);
+        copiedRequest =
+            await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
+        preRequestLocalSessionState =
+            await SuperTokensUtils.getLocalSessionState();
+        String? antiCSRFToken = await AntiCSRF.getToken(
+            preRequestLocalSessionState.lastAccessTokenUpdate);
 
-          if (antiCSRFToken != null) {
-            copiedRequest.headers[antiCSRFHeaderKey] = antiCSRFToken;
-          }
-
-          SuperTokensTokenTransferMethod tokenTransferMethod =
-              SuperTokens.config.tokenTransferMethod;
-          copiedRequest.headers["st-auth-mode"] =
-              tokenTransferMethod.getValue();
-
-          // Adding Authorization headers
-          copiedRequest =
-              await Utils.setAuthorizationHeaderIfRequired(copiedRequest);
-
-          // Add cookies to request headers
-          String? newCookiesToAdd = await Client.cookieStore
-              ?.getCookieHeaderStringForRequest(copiedRequest.url);
-          String? existingCookieHeader =
-              copiedRequest.headers[HttpHeaders.cookieHeader];
-
-          // If the request already has a "cookie" header, combine it with persistent cookies
-          if (existingCookieHeader != null && existingCookieHeader != "") {
-            copiedRequest.headers[HttpHeaders.cookieHeader] =
-                _generateCookieHeader(existingCookieHeader, newCookiesToAdd);
-          } else {
-            copiedRequest.headers[HttpHeaders.cookieHeader] =
-                newCookiesToAdd ?? "";
-          }
-
-          // http package does not allow retries with the same request object, so we clone the request when making the network call
-          response = await _innerClient.send(copiedRequest);
-          await Utils.saveTokenFromHeaders(response);
-          String? frontTokenInHeaders = response.headers[frontTokenHeaderKey];
-          SuperTokensUtils.fireSessionUpdateEventsIfNecessary(
-            wasLoggedIn: preRequestLocalSessionState.status ==
-                LocalSessionStateStatus.EXISTS,
-            status: response.statusCode,
-            frontTokenFromResponse: frontTokenInHeaders,
-          );
-
-          // Save cookies from the response
-          String? setCookieFromResponse =
-              response.headers[HttpHeaders.setCookieHeader];
-          await Client.cookieStore?.saveFromSetCookieHeader(
-              copiedRequest.url, setCookieFromResponse);
-        } finally {
-          _refreshAPILock.release();
+        if (antiCSRFToken != null) {
+          copiedRequest.headers[antiCSRFHeaderKey] = antiCSRFToken;
         }
 
-        if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
-          /**
-           * An API may return a 401 error response even with a valid session, causing a session refresh loop in the interceptor.
-           * To prevent this infinite loop, we break out of the loop after retrying the original request a specified number of times.
-           * The maximum number of retry attempts is defined by maxRetryAttemptsForSessionRefresh config variable.
-           */
-          if (customRequest.sessionRefreshAttempts >=
-              SuperTokens.config.maxRetryAttemptsForSessionRefresh) {
-            throw SuperTokensException(
-                "Received a 401 response from ${customRequest.request.url}. Attempted to refresh the session and retry the request with the updated session tokens ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} times, but each attempt resulted in a 401 error. The maximum session refresh limit has been reached. Please investigate your API. To increase the session refresh attempts, update maxRetryAttemptsForSessionRefresh in the config.");
-          }
-          customRequest.sessionRefreshAttempts++;
+        SuperTokensTokenTransferMethod tokenTransferMethod =
+            SuperTokens.config.tokenTransferMethod;
+        copiedRequest.headers["st-auth-mode"] =
+            tokenTransferMethod.getValue();
 
-          customRequest.request =
-              await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
+        // Adding Authorization headers
+        copiedRequest =
+            await Utils.setAuthorizationHeaderIfRequired(copiedRequest);
 
-          UnauthorisedResponse shouldRetry =
-              await onUnauthorisedResponse(preRequestLocalSessionState);
-          if (shouldRetry.status == UnauthorisedStatus.RETRY) {
-            // Here we use the original request because it wont contain any of the modifications we make
-            return await _sendWithRetry(customRequest);
-          } else {
-            if (shouldRetry.exception != null) {
-              throw SuperTokensException(shouldRetry.exception!.message);
-            } else
-              return response;
-          }
+        // Add cookies to request headers
+        String? newCookiesToAdd = await Client.cookieStore
+            ?.getCookieHeaderStringForRequest(copiedRequest.url);
+        String? existingCookieHeader =
+            copiedRequest.headers[HttpHeaders.cookieHeader];
+
+        // If the request already has a "cookie" header, combine it with persistent cookies
+        if (existingCookieHeader != null && existingCookieHeader != "") {
+          copiedRequest.headers[HttpHeaders.cookieHeader] =
+              _generateCookieHeader(existingCookieHeader, newCookiesToAdd);
         } else {
-          return response;
+          copiedRequest.headers[HttpHeaders.cookieHeader] =
+              newCookiesToAdd ?? "";
         }
+
+        // http package does not allow retries with the same request object, so we clone the request when making the network call
+        response = await _innerClient.send(copiedRequest);
+        await Utils.saveTokenFromHeaders(response);
+        String? frontTokenInHeaders = response.headers[frontTokenHeaderKey];
+        SuperTokensUtils.fireSessionUpdateEventsIfNecessary(
+          wasLoggedIn: preRequestLocalSessionState.status ==
+              LocalSessionStateStatus.EXISTS,
+          status: response.statusCode,
+          frontTokenFromResponse: frontTokenInHeaders,
+        );
+
+        // Save cookies from the response
+        String? setCookieFromResponse =
+            response.headers[HttpHeaders.setCookieHeader];
+        await Client.cookieStore?.saveFromSetCookieHeader(
+            copiedRequest.url, setCookieFromResponse);
+      } finally {
+        _refreshAPILock.release();
       }
-    } finally {
-      LocalSessionState localSessionState =
-          await SuperTokensUtils.getLocalSessionState();
-      if (localSessionState.status == LocalSessionStateStatus.NOT_EXISTS) {
-        await AntiCSRF.removeToken();
-        await FrontToken.removeToken();
+
+      if (response.statusCode == SuperTokens.sessionExpiryStatusCode) {
+        /**
+          * An API may return a 401 error response even with a valid session, causing a session refresh loop in the interceptor.
+          * To prevent this infinite loop, we break out of the loop after retrying the original request a specified number of times.
+          * The maximum number of retry attempts is defined by maxRetryAttemptsForSessionRefresh config variable.
+          */
+        if (customRequest.sessionRefreshAttempts >=
+            SuperTokens.config.maxRetryAttemptsForSessionRefresh) {
+          throw SuperTokensException(
+              "Received a 401 response from ${customRequest.request.url}. Attempted to refresh the session and retry the request with the updated session tokens ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} times, but each attempt resulted in a 401 error. The maximum session refresh limit has been reached. Please investigate your API. To increase the session refresh attempts, update maxRetryAttemptsForSessionRefresh in the config.");
+        }
+        customRequest.sessionRefreshAttempts++;
+
+        customRequest.request =
+            await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);
+
+        UnauthorisedResponse shouldRetry =
+            await onUnauthorisedResponse(preRequestLocalSessionState);
+        if (shouldRetry.status == UnauthorisedStatus.RETRY) {
+          // Here we use the original request because it wont contain any of the modifications we make
+          return await _sendWithRetry(customRequest);
+        } else {
+          if (shouldRetry.exception != null) {
+            throw SuperTokensException(shouldRetry.exception!.message);
+          } else
+            return response;
+        }
+      } else {
+        return response;
       }
     }
   }
@@ -302,25 +293,7 @@ class Client extends http.BaseClient {
           status: UnauthorisedStatus.API_ERROR,
           error: SuperTokensException("Some unknown error occured"));
     } finally {
-      LocalSessionState localSessionState =
-          await SuperTokensUtils.getLocalSessionState();
-
-      if (localSessionState.status == LocalSessionStateStatus.NOT_EXISTS) {
-        await FrontToken.removeToken();
-        await AntiCSRF.removeToken();
-      }
-
       _refreshAPILock.release();
-    }
-  }
-
-  static Future clearTokensIfRequired() async {
-    LocalSessionState preRequestLocalSessionState =
-        await SuperTokensUtils.getLocalSessionState();
-    if (preRequestLocalSessionState.status ==
-        LocalSessionStateStatus.NOT_EXISTS) {
-      await AntiCSRF.removeToken();
-      await FrontToken.removeToken();
     }
   }
 
