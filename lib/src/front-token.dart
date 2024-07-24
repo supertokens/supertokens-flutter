@@ -149,7 +149,7 @@ class FrontToken {
     await _removeTokenFromStorage();
     await Utils.setToken(TokenType.ACCESS, "");
     await Utils.setToken(TokenType.REFRESH, "");
-    await AntiCSRF.removeToken()
+    await AntiCSRF.removeToken();
     if (_tokenInfoMutex.isLocked) {
       _tokenInfoMutex.release();
     }
