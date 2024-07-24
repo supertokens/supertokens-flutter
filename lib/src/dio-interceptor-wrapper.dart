@@ -180,13 +180,6 @@ class SuperTokensInterceptorWrapper extends Interceptor {
             type: DioExceptionType.unknown,
             error: e),
       );
-    } finally {
-      LocalSessionState localSessionState =
-          await SuperTokensUtils.getLocalSessionState();
-      if (localSessionState.status == LocalSessionStateStatus.NOT_EXISTS) {
-        await AntiCSRF.removeToken();
-        await FrontToken.removeToken();
-      }
     }
   }
 
