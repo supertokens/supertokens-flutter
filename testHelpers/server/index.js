@@ -221,12 +221,13 @@ app.use(middleware());
 
 app.post("/login", async (req, res) => {
     let userId = req.body.userId;
-    
+    let accessTokenPayload = req.body.payload !== undefined ? req.body.payload : {};
     let session;
+
     if (multitenancySupported) {
-        session = await Session.createNewSession(req, res, "public", accountLinkingSupported ? SuperTokens.convertToRecipeUserId(userId) : userId);
+        session = await Session.createNewSession(req, res, "public", accountLinkingSupported ? SuperTokens.convertToRecipeUserId(userId) : userId, accessTokenPayload);
     } else {
-        session = await Session.createNewSession(req, res, userId);
+        session = await Session.createNewSession(req, res, userId, accessTokenPayload);
     }
 
     res.send(session.getUserId());
