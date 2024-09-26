@@ -4,6 +4,7 @@ import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:http/http.dart' as http;
 import 'package:supertokens_flutter/src/supertokens-http-client.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 enum Eventype {
   SIGN_OUT,
@@ -48,10 +49,18 @@ class SuperTokens {
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
+    debug? bool,
   }) {
     if (SuperTokens.isInitCalled) {
       return;
     }
+
+    // Enable debug mode if that is specified by the user.
+    if (debug) {
+      enableLogging()
+    }
+
+    logDebugMessage("Started SuperTokens with debug logging (supertokens.init called)");
 
     SuperTokens.config = NormalisedInputType.normaliseInputType(
       apiDomain,
@@ -65,11 +74,18 @@ class SuperTokens {
       postAPIHook,
     );
 
+    logDebugMessage('config: ${jsonEncode(config.toJson())}');
+
     SuperTokens.refreshTokenUrl =
         config.apiDomain + (config.apiBasePath ?? '') + "/session/refresh";
     SuperTokens.signOutUrl =
         config.apiDomain + (config.apiBasePath ?? '') + "/signout";
     SuperTokens.rid = "session";
+
+    logDebugMessage('refreshTokenUrl: ${refreshTokenUrl}')
+    logDebugMessage('signOutUrl: ${signOutUrl}')
+    logDebugMessage('rid: ${rid}')
+
     SuperTokens.isInitCalled = true;
   }
 
