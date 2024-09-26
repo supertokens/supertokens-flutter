@@ -10,6 +10,7 @@ import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/supertokens-http-client.dart';
 import 'package:supertokens_flutter/src/supertokens.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 class SuperTokensInterceptorWrapper extends Interceptor {
   ReadWriteMutex _refreshAPILock = ReadWriteMutex();
@@ -22,6 +23,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
+    logDebugMessage('Intercepting request call')
     if (!SuperTokens.isInitCalled) {
       handler.reject(DioException(
         requestOptions: options,
@@ -33,10 +35,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     }
 
     if (!shouldRunDioInterceptor(options)) {
+      logDebugMessage('Skipping dio interceptor')
       return super.onRequest(options, handler);
     }
 
+    logDebugMessage('Running dio interceptor')
     if (Client.cookieStore == null) {
+      logDebugMessage('Initializing cookie store')
       Client.cookieStore = SuperTokensCookieStore();
     }
 
@@ -70,6 +75,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     // If the request already has a "cookie" header, combine it with persistent cookies
     if (existingCookieHeader != null) {
+      logDebugMessage('Combining cookie header values')
       options.headers[HttpHeaders.cookieHeader] =
           "$existingCookieHeader;${newCookiesToAdd ?? ""}";
     } else {
@@ -90,9 +96,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    logDebugMessage('Intercepting response call')
     if (!shouldRunDioInterceptor(response.requestOptions)) {
+      logDebugMessage('Skipping dio interceptor')
       return handler.next(response);
     }
+
+    logDebugMessage('Running dio interceptor')
     _refreshAPILock.acquireWrite();
     await saveTokensFromHeaders(response);
     String? frontTokenFromResponse =
@@ -122,6 +132,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
             requestOptions.extra["__supertokensSessionRefreshAttempts"] ?? 0;
         if (sessionRefreshAttempts >=
             SuperTokens.config.maxRetryAttemptsForSessionRefresh) {
+          logDebugMessage('Max attempts of ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} reached for refreshing, cannot continue')
           handler.reject(
             DioException(
               requestOptions: response.requestOptions,
@@ -139,6 +150,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         UnauthorisedResponse shouldRetry =
             await Client.onUnauthorisedResponse(_preRequestLocalSessionState);
         if (shouldRetry.status == UnauthorisedStatus.RETRY) {
+          logDebugMessage('Refreshing attempt: ${sessionRefreshAttempts + 1}')
           requestOptions.headers[HttpHeaders.cookieHeader] = userSetCookie;
 
           requestOptions.extra["__supertokensSessionRefreshAttempts"] =

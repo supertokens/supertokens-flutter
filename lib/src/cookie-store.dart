@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 class SuperTokensCookieStore {
   static Map<Uri, List<Cookie>>? _allCookies;
@@ -24,10 +25,12 @@ class SuperTokensCookieStore {
 
   /// Loads all cookies stored in shared preferences into the in memory map [_allCookies]
   static Future<void> _loadFromPersistence() async {
+    logDebugMessage('Trying to load cookies from memory')
     _allCookies = {};
     String cookiesStringInStorage =
         _sharedPreferences?.getString(_cookieSharedPrefsKey) ?? "{}";
     Map<String, dynamic> cookiesInStorage = jsonDecode(cookiesStringInStorage);
+    logDebugMessage('cookies found: ${jsonEncode(cookiesInStorage)}')
     cookiesInStorage.forEach((key, value) {
       Uri uri = Uri.parse(key);
       List<String> cookieStrings = List.from(value);
@@ -49,6 +52,8 @@ class SuperTokensCookieStore {
   ///
   /// If you are trying to store cookies from a "set-cookie" header response, consider using the [saveFromSetCookieHeader] utility method which parses the header string.
   Future<void> saveFromResponse(Uri uri, List<Cookie> cookies) async {
+    logDebugMessage('Saving cookies against: ${uri}')
+    logDebugMessage('Passed cookies: ${jsonEncode(cookies)}')
     await Future.forEach<Cookie>(cookies, (element) async {
       Uri uriToStore = await _getCookieUri(uri, element);
       List<Cookie> currentCookies = _allCookies?[uriToStore] ?? List.from([]);
@@ -76,6 +81,7 @@ class SuperTokensCookieStore {
 
   /// Returns a Uri to use when saving the cookie
   Future<Uri> _getCookieUri(Uri requestUri, Cookie cookie) async {
+    logDebugMessage('Creating cookie uri from: ${requestUri}')
     Uri cookieUri = Uri.parse(
         // ignore: unnecessary_null_comparison
         "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "" : cookie.path}");
@@ -98,6 +104,7 @@ class SuperTokensCookieStore {
       }
     }
 
+    logDebugMessage('Generated cookie uri: ${cookieUri}')
     return cookieUri;
   }
 
@@ -105,6 +112,7 @@ class SuperTokensCookieStore {
   ///
   /// Strips expired cookies before storing in shared preferences
   Future<void> _updatePersistentStorage() async {
+    logDebugMessage('Updating persistent storage with cookies...')
     Map<String, List<String>> mapToStore = {};
     _allCookies?.forEach((key, value) {
       String uriString = key.toString();
@@ -123,10 +131,12 @@ class SuperTokensCookieStore {
   ///
   /// If you are trying to add cookies to a "cookie" header for a network call, consider using the [getCookieHeaderStringForRequest] which creates a semi-colon separated cookie string for a given Uri.
   Future<List<Cookie>> getForRequest(Uri uri) async {
+    logDebugMessage('Getting cookies for request from uri: ${uri}')
     List<Cookie> cookiesToReturn = [];
     List<Cookie> allValidCookies = [];
 
     if (_allCookies == null) {
+      logDebugMessage('No cookies found')
       return cookiesToReturn;
     }
 
@@ -155,6 +165,7 @@ class SuperTokensCookieStore {
       }
     }
 
+    logDebugMessage('Total cookies found ${cookiesToReturn.length}')
     return cookiesToReturn;
   }
 
@@ -175,6 +186,7 @@ class SuperTokensCookieStore {
   /// Removes a list of cookies from persistent storage
   Future<void> _removeFromPersistence(
       Uri uri, List<Cookie> cookiesToRemove) async {
+    logDebugMessage('Removing cookies from persistent storage...')
     List<Cookie> _cookiesToRemove = List.from(cookiesToRemove);
     List<Cookie> currentCookies = _allCookies?[uri] ?? List.from([]);
 
@@ -192,6 +204,7 @@ class SuperTokensCookieStore {
   ///
   /// Does not return expired cookies and will remove them from persistent storage if any are found.
   Future<String> getCookieHeaderStringForRequest(Uri uri) async {
+    logDebugMessage('Getting cookie header for request from uri: ${uri}')
     List<Cookie> cookies = await getForRequest(uri);
     // ignore: unnecessary_null_comparison
     if (cookies != null && cookies.isNotEmpty) {
@@ -214,6 +227,7 @@ class SuperTokensCookieStore {
   ///
   /// Expired cookies are not saved.
   Future<void> saveFromSetCookieHeader(Uri uri, String? setCookieHeader) async {
+    logDebugMessage('Saving cookie from header against uri: ${uri}')
     if (setCookieHeader != null) {
       await saveFromResponse(uri, getCookieListFromHeader(setCookieHeader));
     }
@@ -224,6 +238,7 @@ class SuperTokensCookieStore {
         setCookieHeader.split(RegExp(r',(?=[^ ])'));
     List<Cookie> setCookiesList =
         setCookiesStringList.map((e) => Cookie.fromSetCookieValue(e)).toList();
+    logDebugMessage('Total cookies found in header: ${setCookiesList.length}')
     return setCookiesList;
   }
 }
