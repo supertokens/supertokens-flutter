@@ -60,7 +60,7 @@ class SuperTokens {
       enableLogging();
     }
 
-    logDebugMessage("Started SuperTokens with debug logging (supertokens.init called)");
+    logDebugMessage("init: Started SuperTokens with debug logging (supertokens.init called)");
 
     SuperTokens.config = NormalisedInputType.normaliseInputType(
       apiDomain,

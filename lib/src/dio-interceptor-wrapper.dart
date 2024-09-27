@@ -23,7 +23,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
-    logDebugMessage('Intercepting request call');
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Intercepting request call');
     if (!SuperTokens.isInitCalled) {
       handler.reject(DioException(
         requestOptions: options,
@@ -35,24 +35,27 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     }
 
     if (!shouldRunDioInterceptor(options)) {
-      logDebugMessage('Skipping dio interceptor');
+      logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Skipping dio interceptor');
       return super.onRequest(options, handler);
     }
 
-    logDebugMessage('Running dio interceptor');
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Running dio interceptor');
     if (Client.cookieStore == null) {
-      logDebugMessage('Initializing cookie store');
+      logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Initializing cookie store');
       Client.cookieStore = SuperTokensCookieStore();
     }
 
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Removing auth header if it matches local token');
     options = await _removeAuthHeaderIfMatchesLocalToken(options);
 
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Getting local session state');
     _preRequestLocalSessionState =
         await SuperTokensUtils.getLocalSessionState();
     String? antiCSRFToken = await AntiCSRF.getToken(
         _preRequestLocalSessionState.lastAccessTokenUpdate);
 
     if (antiCSRFToken != null) {
+      logDebugMessage('SuperTokensInterceptorWrapper.onRequest: antiCSRFToken is not null');
       options.headers[antiCSRFHeaderKey] = antiCSRFToken;
     }
 
@@ -60,6 +63,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
         SuperTokens.config.tokenTransferMethod;
     options.headers["st-auth-mode"] = tokenTransferMethod.getValue();
 
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Setting authorization header if required');
     options = await _setAuthorizationHeaderIfRequired(options);
 
     userSetCookie = options.headers[HttpHeaders.cookieHeader];
@@ -68,6 +72,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     if (!uriForCookieString.endsWith("/")) {
       uriForCookieString += "/";
     }
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: uriForCookieString: ${uriForCookieString}');
 
     String? newCookiesToAdd = await Client.cookieStore
         ?.getCookieHeaderStringForRequest(Uri.parse(uriForCookieString));
@@ -75,13 +80,15 @@ class SuperTokensInterceptorWrapper extends Interceptor {
 
     // If the request already has a "cookie" header, combine it with persistent cookies
     if (existingCookieHeader != null) {
-      logDebugMessage('Combining cookie header values');
+      logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Combining cookie header values');
       options.headers[HttpHeaders.cookieHeader] =
           "$existingCookieHeader;${newCookiesToAdd ?? ""}";
     } else {
+      logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Adding new cookie header');
       options.headers[HttpHeaders.cookieHeader] = newCookiesToAdd ?? "";
     }
 
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Injecting status check in validateStatus');
     var oldValidate = options.validateStatus;
     options.validateStatus = (status) {
       if (status != null &&
@@ -91,22 +98,26 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       return oldValidate(status);
     };
 
+    logDebugMessage('SuperTokensInterceptorWrapper.onRequest: Calling next on handler');
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    logDebugMessage('Intercepting response call');
+    logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Intercepting response call');
     if (!shouldRunDioInterceptor(response.requestOptions)) {
-      logDebugMessage('Skipping dio interceptor');
+      logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Skipping dio interceptor');
       return handler.next(response);
     }
 
-    logDebugMessage('Running dio interceptor');
+    logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Running dio interceptor');
     _refreshAPILock.acquireWrite();
+    logDebugMessage('SuperTokensInterceptorWrapper.onResponse: write acquired');
+    logDebugMessage('SuperTokensInterceptorWrapper.onResponse: saving tokens from headers');
     await saveTokensFromHeaders(response);
     String? frontTokenFromResponse =
         response.headers.map[frontTokenHeaderKey]?.first.toString();
+    logDebugMessage('SuperTokensInterceptorWrapper.onResponse: frontTokenFromResponse: ${frontTokenFromResponse}');
     SuperTokensUtils.fireSessionUpdateEventsIfNecessary(
       wasLoggedIn:
           _preRequestLocalSessionState.status == LocalSessionStateStatus.EXISTS,
@@ -115,6 +126,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     );
     List<dynamic>? setCookieFromResponse =
         response.headers.map[HttpHeaders.setCookieHeader];
+    logDebugMessage('SuperTokensInterceptorWrapper.onResponse: setCookieFromResponse length: ${setCookieFromResponse?.length}');
     setCookieFromResponse?.forEach((element) async {
       await Client.cookieStore
           ?.saveFromSetCookieHeader(response.realUri, element);
@@ -127,12 +139,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
          * To prevent this infinite loop, we break out of the loop after retrying the original request a specified number of times.
          * The maximum number of retry attempts is defined by maxRetryAttemptsForSessionRefresh config variable.
          */
+        logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Got expiry status code');
         RequestOptions requestOptions = response.requestOptions;
         int sessionRefreshAttempts =
             requestOptions.extra["__supertokensSessionRefreshAttempts"] ?? 0;
         if (sessionRefreshAttempts >=
             SuperTokens.config.maxRetryAttemptsForSessionRefresh) {
-          logDebugMessage('Max attempts of ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} reached for refreshing, cannot continue');
+          logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Max attempts of ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} reached for refreshing, cannot continue');
           handler.reject(
             DioException(
               requestOptions: response.requestOptions,
@@ -145,12 +158,14 @@ class SuperTokensInterceptorWrapper extends Interceptor {
           return;
         }
 
+        logDebugMessage('SuperTokensInterceptorWrapper.onResponse: removing auth header if it matches token');
         requestOptions =
             await _removeAuthHeaderIfMatchesLocalToken(requestOptions);
         UnauthorisedResponse shouldRetry =
             await Client.onUnauthorisedResponse(_preRequestLocalSessionState);
         if (shouldRetry.status == UnauthorisedStatus.RETRY) {
-          logDebugMessage('Refreshing attempt: ${sessionRefreshAttempts + 1}');
+          logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Got RETRY status');
+          logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Refreshing attempt: ${sessionRefreshAttempts + 1}');
           requestOptions.headers[HttpHeaders.cookieHeader] = userSetCookie;
 
           requestOptions.extra["__supertokensSessionRefreshAttempts"] =
@@ -159,14 +174,18 @@ class SuperTokensInterceptorWrapper extends Interceptor {
           Response<dynamic> res = await client.fetch(requestOptions);
           List<dynamic>? setCookieFromResponse =
               res.headers.map[HttpHeaders.setCookieHeader];
+          logDebugMessage('SuperTokensInterceptorWrapper.onResponse: setCookieFromResponse length: ${setCookieFromResponse?.length}');
           setCookieFromResponse?.forEach((element) async {
             await Client.cookieStore
                 ?.saveFromSetCookieHeader(res.realUri, element);
           });
+          logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Saving tokens from headers');
           await saveTokensFromHeaders(res);
+          logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Calling next on handler');
           return handler.next(res);
         } else {
           if (shouldRetry.exception != null) {
+            logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Got non null exception');
             handler.reject(
               DioException(
                   requestOptions: response.requestOptions,
@@ -176,11 +195,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
             return;
           } else {
             _refreshAPILock.release();
+            logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Calling next on handler');
             return handler.next(response);
           }
         }
       } else {
         _refreshAPILock.release();
+        logDebugMessage('SuperTokensInterceptorWrapper.onResponse: Calling next on handler');
         return handler.next(response);
       }
     } on DioException catch (e) {
@@ -196,10 +217,13 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   }
 
   Future<void> saveTokensFromHeaders(Response response) async {
+    logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: Saving tokens from header');
     String? frontTokenFromResponse =
         response.headers.map[frontTokenHeaderKey]?.first.toString();
+    logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: frontTokenFromResponse: ${frontTokenFromResponse}');
 
     if (frontTokenFromResponse != null) {
+      logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: Setting token since it is not null');
       await FrontToken.setItem(frontTokenFromResponse);
     }
 
@@ -210,6 +234,7 @@ class SuperTokensInterceptorWrapper extends Interceptor {
       LocalSessionState localSessionState =
           await SuperTokensUtils.getLocalSessionState();
 
+      logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: Setting token in AntiCSRF');
       await AntiCSRF.setToken(
         antiCSRFFromResponse,
         localSessionState.lastAccessTokenUpdate,
@@ -219,29 +244,39 @@ class SuperTokensInterceptorWrapper extends Interceptor {
     String? accessHeader =
         response.headers.map[ACCESS_TOKEN_NAME]?.first.toString();
 
+    logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: accessHeader: ${accessHeader}');
     if (accessHeader != null) {
+      logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: Setting access header');
       await Utils.setToken(TokenType.ACCESS, accessHeader);
     }
     String? refreshHeader =
         response.headers.map[REFRESH_TOKEN_NAME]?.first.toString();
 
+    logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: refreshHeader: ${refreshHeader}');
     if (refreshHeader != null) {
+      logDebugMessage('SuperTokensInterceptorWrapper.saveTokensFromHeaders: Setting refresh header');
       await Utils.setToken(TokenType.REFRESH, refreshHeader);
     }
   }
 
   Future<RequestOptions> _removeAuthHeaderIfMatchesLocalToken(
       RequestOptions req) async {
+    logDebugMessage('SuperTokensInterceptorWrapper._removeAuthHeaderIfMatchesLocalToken: Removing auth header if it matches local token');
     if (req.headers.containsKey("Authorization") ||
         req.headers.containsKey("authorization")) {
       String? authValue = req.headers['Authorization'];
+      logDebugMessage('SuperTokensInterceptorWrapper._removeAuthHeaderIfMatchesLocalToken: authValue: ${authValue}');
       if (authValue == null) {
+        logDebugMessage('SuperTokensInterceptorWrapper._removeAuthHeaderIfMatchesLocalToken: Setting auth header');
         authValue = req.headers["authorization"];
       }
       String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
       String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+      logDebugMessage('SuperTokensInterceptorWrapper._removeAuthHeaderIfMatchesLocalToken: accessToken: ${accessToken}');
+      logDebugMessage('SuperTokensInterceptorWrapper._removeAuthHeaderIfMatchesLocalToken: refreshToken: ${refreshToken}');
 
       if (accessToken != null && refreshToken != null && authValue != "Bearer $accessToken") {
+        logDebugMessage('SuperTokensInterceptorWrapper._removeAuthHeaderIfMatchesLocalToken: Removing authorization headers');
         req.headers.remove('Authorization');
         req.headers.remove('authorization');
       }
@@ -252,15 +287,20 @@ class SuperTokensInterceptorWrapper extends Interceptor {
   static Future<RequestOptions> _setAuthorizationHeaderIfRequired(
       RequestOptions options,
       {bool addRefreshToken = false}) async {
+    logDebugMessage('SuperTokensInterceptorWrapper._setAuthorizationHeaderIfRequired: Setting authorization header if required');
     String? accessToken = await Utils.getTokenForHeaderAuth(TokenType.ACCESS);
     String? refreshToken = await Utils.getTokenForHeaderAuth(TokenType.REFRESH);
+    logDebugMessage('SuperTokensInterceptorWrapper._setAuthorizationHeaderIfRequired: accessToken: ${accessToken}');
+    logDebugMessage('SuperTokensInterceptorWrapper._setAuthorizationHeaderIfRequired: refreshToken: ${refreshToken}');
 
     if (accessToken != null && refreshToken != null) {
       if (options.headers["Authorization"] != null ||
           options.headers["authorization"] != null) {
         //  no-op
+        logDebugMessage('SuperTokensInterceptorWrapper._setAuthorizationHeaderIfRequired: Doing nothing as headers are already set');
       } else {
         String tokenToAdd = addRefreshToken ? refreshToken : accessToken;
+        logDebugMessage('SuperTokensInterceptorWrapper._setAuthorizationHeaderIfRequired: Setting header to bearer: ${tokenToAdd}');
         options.headers["Authorization"] = "Bearer $tokenToAdd";
       }
     }
