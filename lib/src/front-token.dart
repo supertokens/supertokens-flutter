@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/supertokens.dart';
 import 'package:supertokens_flutter/src/anti-csrf.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 class FrontToken {
   static String? tokenInMemory;
@@ -110,6 +111,7 @@ class FrontToken {
     // Check the start and end of onUnauthorisedResponse
     // As a side-effect we reload the anti-csrf token to check if it was changed by another tab.
     await SuperTokensUtils.saveLastAccessTokenUpdate();
+    logDebugMessage('Setting front token');
 
     if (frontToken == "remove") {
       await FrontToken.removeToken();
@@ -127,6 +129,7 @@ class FrontToken {
   }
 
   static Future<bool> doesTokenExist() async {
+    logDebugMessage('Checking if token exists');
     try {
       await _frontTokenMutex.acquire();
       var frontToken = await FrontToken._getFronTokenFromStorage();
@@ -145,6 +148,7 @@ class FrontToken {
   }
 
   static Future<void> removeToken() async {
+    logDebugMessage('Removing token');
     await _tokenInfoMutex.acquireWrite();
     await _removeTokenFromStorage();
     await Utils.setToken(TokenType.ACCESS, "");

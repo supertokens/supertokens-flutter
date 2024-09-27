@@ -465,7 +465,6 @@ class NormalisedInputType {
       'maxRetryAttemptsForSessionRefresh': maxRetryAttemptsForSessionRefresh,
       'sessionTokenBackendDomain': sessionTokenBackendDomain,
       'tokenTransferMethod': tokenTransferMethod.getValue(),
-      'userDefaultSuiteName': userDefaultSuiteName,
     };
   }
 }

@@ -9,12 +9,13 @@ import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:supertokens_flutter/src/version.dart';
 import 'package:supertokens_flutter/supertokens.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 import 'constants.dart';
 
 /// An [http.BaseClient] implementation for using SuperTokens for your network requests.
 /// To make use of supertokens, use this as the client for making network calls instead of [http.Client] or your own custom clients.
-/// If you use a custom client for your network calls pass an instance of it as a paramter when initialising [Client], pass [http.Client()] to use the default.
+/// If you use a custom client for your network calls pass an instance of it as a parameter when initialising [Client], pass [http.Client()] to use the default.
 ReadWriteMutex _refreshAPILock = ReadWriteMutex();
 
 class CustomRequest {
@@ -48,6 +49,7 @@ class Client extends http.BaseClient {
 
   Future<http.StreamedResponse> _sendWithRetry(
       CustomRequest customRequest) async {
+    logDebugMessage('Sending request');
     if (Client.cookieStore == null) {
       Client.cookieStore = SuperTokensCookieStore();
     }
@@ -59,11 +61,13 @@ class Client extends http.BaseClient {
 
     if (SuperTokensUtils.getApiDomain(customRequest.request.url.toString()) !=
         SuperTokens.config.apiDomain) {
+      logDebugMessage('Not matching api domain, using inner client');
       return _innerClient.send(customRequest.request);
     }
 
     if (SuperTokensUtils.getApiDomain(customRequest.request.url.toString()) ==
         SuperTokens.refreshTokenUrl) {
+      logDebugMessage('Refresh token URL matched');
       return _innerClient.send(customRequest.request);
     }
 
@@ -71,6 +75,7 @@ class Client extends http.BaseClient {
         customRequest.request.url.toString(),
         SuperTokens.config.apiDomain,
         SuperTokens.config.sessionTokenBackendDomain)) {
+      logDebugMessage('Skipping interceptions');
       return _innerClient.send(customRequest.request);
     }
 
@@ -145,10 +150,12 @@ class Client extends http.BaseClient {
           */
         if (customRequest.sessionRefreshAttempts >=
             SuperTokens.config.maxRetryAttemptsForSessionRefresh) {
+          logDebugMessage('Max attempts of ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} reached for refreshing, cannot continue');
           throw SuperTokensException(
               "Received a 401 response from ${customRequest.request.url}. Attempted to refresh the session and retry the request with the updated session tokens ${SuperTokens.config.maxRetryAttemptsForSessionRefresh} times, but each attempt resulted in a 401 error. The maximum session refresh limit has been reached. Please investigate your API. To increase the session refresh attempts, update maxRetryAttemptsForSessionRefresh in the config.");
         }
         customRequest.sessionRefreshAttempts++;
+        logDebugMessage('Refreshing attempt: ${customRequest.sessionRefreshAttempts}');
 
         customRequest.request =
             await _removeAuthHeaderIfMatchesLocalToken(copiedRequest);

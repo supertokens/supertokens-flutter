@@ -1,5 +1,6 @@
 import 'package:supertokens_flutter/src/errors.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 class NormalisedURLDomain {
   late String value;
@@ -12,6 +13,7 @@ class NormalisedURLDomain {
       {bool ignoreProtocal = false}) {
     String trimmedInput = input.trim();
 
+    logDebugMessage('Normalising url domain: ${input}');
     try {
       if (!trimmedInput.startsWith("http://") &&
           !trimmedInput.startsWith("https://")) {
@@ -35,6 +37,7 @@ class NormalisedURLDomain {
         trimmedInput = scheme + "://" + hostSuffix;
       }
 
+      logDebugMessage('Normalised value: ${trimmedInput}');
       return trimmedInput;
     } catch (e) {}
 

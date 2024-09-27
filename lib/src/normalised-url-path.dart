@@ -1,4 +1,5 @@
 import 'package:supertokens_flutter/src/errors.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 class NormalisedURLPath {
   late String value;
@@ -8,6 +9,7 @@ class NormalisedURLPath {
   }
 
   static String normaliseIRLPathOrThrowError(String input) {
+    logDebugMessage('Normalising URL path: ${input}');
     String trimmedInput = input.trim();
 
     try {
@@ -21,6 +23,7 @@ class NormalisedURLPath {
         return trimmedInput.substring(0, trimmedInput.length - 1);
       }
 
+      logDebugMessage('Normalised value: ${trimmedInput}');
       return trimmedInput;
     } catch (e) {}
 

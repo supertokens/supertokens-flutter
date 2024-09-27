@@ -16,8 +16,8 @@ class AntiCSRF {
   static String _sharedPreferencesKey = "supertokens-flutter-anti-csrf";
 
   static Future<String?> getToken(String? associatedAccessTokenUpdate) async {
-    logDebugMessage('Getting token...')
-    logDebugMessage('associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}')
+    logDebugMessage('Getting token');
+    logDebugMessage('associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}');
     if (associatedAccessTokenUpdate == null) {
       AntiCSRF._antiCSRFInfo = null;
       return null;
@@ -46,8 +46,8 @@ class AntiCSRF {
 
   static Future<void> setToken(
       String antiCSRFToken, String? associatedAccessTokenUpdate) async {
-    logDebugMessage('Setting token...')
-    logDebugMessage('associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}')
+    logDebugMessage('Setting token');
+    logDebugMessage('associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}');
     if (associatedAccessTokenUpdate == null) {
       AntiCSRF._antiCSRFInfo = null;
       return;
@@ -63,7 +63,7 @@ class AntiCSRF {
   }
 
   static Future<void> removeToken() async {
-    logDebugMessage('Removing token...')
+    logDebugMessage('Removing token');
     SharedPreferences preferences = await SharedPreferences.getInstance();
     await preferences.remove(AntiCSRF._sharedPreferencesKey);
     await preferences.reload();

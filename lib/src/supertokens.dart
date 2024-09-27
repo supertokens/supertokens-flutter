@@ -49,15 +49,15 @@ class SuperTokens {
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
-    debug? bool,
+    bool? debug,
   }) {
     if (SuperTokens.isInitCalled) {
       return;
     }
 
     // Enable debug mode if that is specified by the user.
-    if (debug) {
-      enableLogging()
+    if (debug != null && debug) {
+      enableLogging();
     }
 
     logDebugMessage("Started SuperTokens with debug logging (supertokens.init called)");
@@ -82,9 +82,9 @@ class SuperTokens {
         config.apiDomain + (config.apiBasePath ?? '') + "/signout";
     SuperTokens.rid = "session";
 
-    logDebugMessage('refreshTokenUrl: ${refreshTokenUrl}')
-    logDebugMessage('signOutUrl: ${signOutUrl}')
-    logDebugMessage('rid: ${rid}')
+    logDebugMessage('refreshTokenUrl: ${refreshTokenUrl}');
+    logDebugMessage('signOutUrl: ${signOutUrl}');
+    logDebugMessage('rid: ${rid}');
 
     SuperTokens.isInitCalled = true;
   }
@@ -93,7 +93,7 @@ class SuperTokens {
   static Future<bool> doesSessionExist() async {
     Map<String, dynamic>? tokenInfo = await FrontToken.getToken();
 
-    logDebugMessage('Got token info: ${jsonEncode(tokenInfo)}')
+    logDebugMessage('Got token info: ${jsonEncode(tokenInfo)}');
     if (tokenInfo == null) {
       return false;
     }
@@ -121,7 +121,7 @@ class SuperTokens {
   }
 
   static Future<void> signOut({Function(Exception?)? completionHandler}) async {
-    logDebugMessage('Signing out user...')
+    logDebugMessage('Signing out user');
     if (!(await doesSessionExist())) {
       SuperTokens.config.eventHandler(Eventype.SIGN_OUT);
       if (completionHandler != null) {
@@ -141,7 +141,7 @@ class SuperTokens {
       return;
     }
 
-    logDebugMessage('Using signOutUrl: ${uri}')
+    logDebugMessage('Using signOutUrl: ${uri}');
     http.Request signOut = http.Request('post', uri);
     signOut = SuperTokens.config.preAPIHook(APIAction.SIGN_OUT, signOut);
 
@@ -177,7 +177,7 @@ class SuperTokens {
   }
 
   static Future<bool> attemptRefreshingSession() async {
-    logDebugMessage('Attempting to refresh session...')
+    logDebugMessage('Attempting to refresh session');
     LocalSessionState preRequestLocalSessionState =
         await SuperTokensUtils.getLocalSessionState();
     bool shouldRetry = false;
