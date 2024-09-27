@@ -49,14 +49,14 @@ class SuperTokens {
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
-    bool? debug,
+    bool? enableDebugLogs,
   }) {
     if (SuperTokens.isInitCalled) {
       return;
     }
 
     // Enable debug mode if that is specified by the user.
-    if (debug != null && debug) {
+    if (enableDebugLogs != null && enableDebugLogs) {
       enableLogging();
     }
 
