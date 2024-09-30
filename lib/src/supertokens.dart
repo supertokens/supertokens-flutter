@@ -4,6 +4,7 @@ import 'package:supertokens_flutter/src/front-token.dart';
 import 'package:supertokens_flutter/src/utilities.dart';
 import 'package:http/http.dart' as http;
 import 'package:supertokens_flutter/src/supertokens-http-client.dart';
+import 'package:supertokens_flutter/src/logger.dart';
 
 enum Eventype {
   SIGN_OUT,
@@ -48,10 +49,18 @@ class SuperTokens {
     Function(Eventype)? eventHandler,
     http.Request Function(APIAction, http.Request)? preAPIHook,
     Function(APIAction, http.Request, http.Response)? postAPIHook,
+    bool? enableDebugLogs,
   }) {
     if (SuperTokens.isInitCalled) {
       return;
     }
+
+    // Enable debug mode if that is specified by the user.
+    if (enableDebugLogs != null && enableDebugLogs) {
+      enableLogging();
+    }
+
+    logDebugMessage("SuperTokens.init: Started SuperTokens with debug logging (supertokens.init called)");
 
     SuperTokens.config = NormalisedInputType.normaliseInputType(
       apiDomain,
@@ -65,11 +74,18 @@ class SuperTokens {
       postAPIHook,
     );
 
+    logDebugMessage('SuperTokens.init: config: ${jsonEncode(config.toJson())}');
+
     SuperTokens.refreshTokenUrl =
         config.apiDomain + (config.apiBasePath ?? '') + "/session/refresh";
     SuperTokens.signOutUrl =
         config.apiDomain + (config.apiBasePath ?? '') + "/signout";
     SuperTokens.rid = "session";
+
+    logDebugMessage('SuperTokens.init: refreshTokenUrl: ${refreshTokenUrl}');
+    logDebugMessage('SuperTokens.init: signOutUrl: ${signOutUrl}');
+    logDebugMessage('SuperTokens.init: rid: ${rid}');
+
     SuperTokens.isInitCalled = true;
   }
 
@@ -77,7 +93,9 @@ class SuperTokens {
   static Future<bool> doesSessionExist() async {
     Map<String, dynamic>? tokenInfo = await FrontToken.getToken();
 
+    logDebugMessage('SuperTokens.doesSessionExist: Got token info: ${jsonEncode(tokenInfo)}');
     if (tokenInfo == null) {
+      logDebugMessage('SuperTokens.doesSessionExist: token info is null');
       return false;
     }
 
@@ -85,6 +103,7 @@ class SuperTokens {
     int accessTokenExpiry = tokenInfo["ate"];
 
     if (accessTokenExpiry != null && accessTokenExpiry < now) {
+      logDebugMessage('SuperTokens.doesSessionExist: access token has expired');
       LocalSessionState preRequestLocalSessionState =
           await SuperTokensUtils.getLocalSessionState();
 
@@ -104,9 +123,12 @@ class SuperTokens {
   }
 
   static Future<void> signOut({Function(Exception?)? completionHandler}) async {
+    logDebugMessage('SuperTokens.signOut: Signing out user');
     if (!(await doesSessionExist())) {
+      logDebugMessage('SuperTokens.signOut: Session does not exist');
       SuperTokens.config.eventHandler(Eventype.SIGN_OUT);
       if (completionHandler != null) {
+        logDebugMessage('SuperTokens.signOut: Calling completionHandler');
         completionHandler(null);
       }
       return;
@@ -123,6 +145,7 @@ class SuperTokens {
       return;
     }
 
+    logDebugMessage('SuperTokens.signOut: Using signOutUrl: ${uri}');
     http.Request signOut = http.Request('post', uri);
     signOut = SuperTokens.config.preAPIHook(APIAction.SIGN_OUT, signOut);
 
@@ -158,6 +181,7 @@ class SuperTokens {
   }
 
   static Future<bool> attemptRefreshingSession() async {
+    logDebugMessage('SuperTokens.attemptRefreshingSession: Attempting to refresh session');
     LocalSessionState preRequestLocalSessionState =
         await SuperTokensUtils.getLocalSessionState();
     bool shouldRetry = false;
@@ -166,10 +190,13 @@ class SuperTokens {
     dynamic resp =
         await Client.onUnauthorisedResponse(preRequestLocalSessionState);
     if (resp is UnauthorisedResponse) {
+      logDebugMessage('SuperTokens.attemptRefreshingSession: Got unauthorised response');
       if (resp.status == UnauthorisedStatus.API_ERROR) {
+        logDebugMessage('SuperTokens.attemptRefreshingSession: Got API error');
         exception = resp.error as SuperTokensException;
       } else {
         shouldRetry = resp.status == UnauthorisedStatus.RETRY;
+        logDebugMessage('SuperTokens.attemptRefreshingSession: shouldRetry: ${shouldRetry}');
       }
     }
     if (exception != null) {
@@ -193,10 +220,13 @@ class SuperTokens {
     Map<String, dynamic> userPayload = frontToken['up'] as Map<String, dynamic>;
 
     if (accessTokenExpiry < DateTime.now().millisecondsSinceEpoch) {
+      logDebugMessage('SuperTokens.getAccessTokenPayloadSecurely: access token has expired, trying to refresh');
       bool retry = await SuperTokens.attemptRefreshingSession();
 
-      if (retry)
+      if (retry) {
+        logDebugMessage('SuperTokens.getAccessTokenPayloadSecurely: Retry was successful, extracting payload');
         return getAccessTokenPayloadSecurely();
+      }
       else
         throw SuperTokensException("Could not refresh session");
     }

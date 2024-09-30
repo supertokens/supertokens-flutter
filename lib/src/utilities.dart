@@ -456,4 +456,15 @@ class NormalisedInputType {
       throw SuperTokensException("Please provide a valid SessionScope");
     }
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'apiDomain': apiDomain,
+      'apiBasePath': apiBasePath,
+      'sessionExpiredStatusCode': sessionExpiredStatusCode,
+      'maxRetryAttemptsForSessionRefresh': maxRetryAttemptsForSessionRefresh,
+      'sessionTokenBackendDomain': sessionTokenBackendDomain,
+      'tokenTransferMethod': tokenTransferMethod.getValue(),
+    };
+  }
 }

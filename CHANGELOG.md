@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2024-09-27
+
+- Adds support for debug logs using a `debug` option in the init() method of the SDK.
+
 ## [0.6.1] - 2024-07-12
 
 ### Changes
