@@ -24,6 +24,6 @@ void disableLogging() {
 void logDebugMessage(String message) {
   if (_supertokensWebsiteLogging) {
     print(
-        '$supertokensDebugNamespace {t: "${DateTime.now().toIso8601String()}", message: "$message", supertokens-react-native: "${Version.sdkVersion}"}');
+        '$supertokensDebugNamespace {t: "${DateTime.now().toIso8601String()}", message: "$message", supertokens-flutter: "${Version.sdkVersion}"}');
   }
 }

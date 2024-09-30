@@ -9,21 +9,24 @@ class NormalisedURLPath {
   }
 
   static String normaliseIRLPathOrThrowError(String input) {
-    logDebugMessage('Normalising URL path: ${input}');
+    logDebugMessage('NormalisedURLPath.normaliseIRLPathOrThrowError: Normalising URL path: ${input}');
     String trimmedInput = input.trim();
 
     try {
-      if (!trimmedInput.startsWith('http'))
+      if (!trimmedInput.startsWith('http')) {
+        logDebugMessage('NormalisedURLPath.normaliseIRLPathOrThrowError: Got invalid protocol');
         throw SuperTokensException('Invalid protocol');
+      }
 
       Uri url = Uri.parse(trimmedInput);
       trimmedInput = url.path;
+      logDebugMessage('NormalisedURLPath.normaliseIRLPathOrThrowError: trimmedInput: ${trimmedInput}');
 
       if (trimmedInput.endsWith('/')) {
         return trimmedInput.substring(0, trimmedInput.length - 1);
       }
 
-      logDebugMessage('Normalised value: ${trimmedInput}');
+      logDebugMessage('NormalisedURLPath.normaliseIRLPathOrThrowError: Normalised value: ${trimmedInput}');
       return trimmedInput;
     } catch (e) {}
 
@@ -34,6 +37,7 @@ class NormalisedURLPath {
         !trimmedInput.startsWith('http://') &&
         !trimmedInput.startsWith('https://')) {
       trimmedInput = 'https://' + trimmedInput;
+      logDebugMessage('NormalisedURLPath.normaliseIRLPathOrThrowError: Determined to be a domain name');
       return normaliseIRLPathOrThrowError(trimmedInput);
     }
 
@@ -59,6 +63,7 @@ class NormalisedURLPath {
 
   static bool isDomainGiven(String input) {
     if (input.indexOf('.') == -1 || input.startsWith('/')) {
+      logDebugMessage('NormalisedURLPath.isDomainGiven: Not a domain');
       return false;
     }
     try {
