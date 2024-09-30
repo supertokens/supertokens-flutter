@@ -53,7 +53,7 @@ class SuperTokensCookieStore {
   /// If you are trying to store cookies from a "set-cookie" header response, consider using the [saveFromSetCookieHeader] utility method which parses the header string.
   Future<void> saveFromResponse(Uri uri, List<Cookie> cookies) async {
     logDebugMessage('SuperTokensCookieStore.saveFromResponse: Saving cookies against: ${uri}');
-    logDebugMessage('SuperTokensCookieStore.saveFromResponse: Passed cookies: ${jsonEncode(cookies)}');
+    logDebugMessage('SuperTokensCookieStore.saveFromResponse: Total passed cookies: ${cookies.length}');
     await Future.forEach<Cookie>(cookies, (element) async {
       Uri uriToStore = await _getCookieUri(uri, element);
       logDebugMessage('SuperTokensCookieStore.saveFromResponse: Setting based on uriToStore: ${uriToStore}');
