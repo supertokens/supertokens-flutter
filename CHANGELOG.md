@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2024-10-29
+
+### Changes
+
+- Added new FDI version support: 3.1, 4.0
+
 ## [0.6.2] - 2024-09-27
 
 - Adds support for debug logs using a `debug` option in the init() method of the SDK.
