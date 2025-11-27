@@ -22,9 +22,7 @@ class NetworkManager {
   late Dio client;
 
   void _initClient() {
-    client = Dio(BaseOptions(
-      baseUrl: apiDomain,
-    ));
+    client = Dio(BaseOptions(baseUrl: apiDomain));
     client.addSupertokensInterceptor();
   }
 }

@@ -12,15 +12,9 @@ class _SplashScreenState extends State<SplashScreen> {
   void checkForAuthAndNavigate() {
     SuperTokens.doesSessionExist().then((value) {
       if (value) {
-        Navigator.pushReplacementNamed(
-          context,
-          "/home",
-        );
+        Navigator.pushReplacementNamed(context, "/home");
       } else {
-        Navigator.pushReplacementNamed(
-          context,
-          "/login",
-        );
+        Navigator.pushReplacementNamed(context, "/login");
       }
     });
   }
@@ -37,10 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: Text(
           "SuperTokens Example",
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
       ),
     );

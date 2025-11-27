@@ -25,12 +25,14 @@ class SuperTokensCookieStore {
 
   /// Loads all cookies stored in shared preferences into the in memory map [_allCookies]
   static Future<void> _loadFromPersistence() async {
-    logDebugMessage('SuperTokensCookieStore._loadFromPersistence: Trying to load cookies from memory');
+    logDebugMessage(
+        'SuperTokensCookieStore._loadFromPersistence: Trying to load cookies from memory');
     _allCookies = {};
     String cookiesStringInStorage =
         _sharedPreferences?.getString(_cookieSharedPrefsKey) ?? "{}";
     Map<String, dynamic> cookiesInStorage = jsonDecode(cookiesStringInStorage);
-    logDebugMessage('SuperTokensCookieStore._loadFromPersistence: cookies found: ${jsonEncode(cookiesInStorage)}');
+    logDebugMessage(
+        'SuperTokensCookieStore._loadFromPersistence: cookies found: ${jsonEncode(cookiesInStorage)}');
     cookiesInStorage.forEach((key, value) {
       Uri uri = Uri.parse(key);
       List<String> cookieStrings = List.from(value);
@@ -52,11 +54,14 @@ class SuperTokensCookieStore {
   ///
   /// If you are trying to store cookies from a "set-cookie" header response, consider using the [saveFromSetCookieHeader] utility method which parses the header string.
   Future<void> saveFromResponse(Uri uri, List<Cookie> cookies) async {
-    logDebugMessage('SuperTokensCookieStore.saveFromResponse: Saving cookies against: ${uri}');
-    logDebugMessage('SuperTokensCookieStore.saveFromResponse: Total passed cookies: ${cookies.length}');
+    logDebugMessage(
+        'SuperTokensCookieStore.saveFromResponse: Saving cookies against: ${uri}');
+    logDebugMessage(
+        'SuperTokensCookieStore.saveFromResponse: Total passed cookies: ${cookies.length}');
     await Future.forEach<Cookie>(cookies, (element) async {
       Uri uriToStore = await _getCookieUri(uri, element);
-      logDebugMessage('SuperTokensCookieStore.saveFromResponse: Setting based on uriToStore: ${uriToStore}');
+      logDebugMessage(
+          'SuperTokensCookieStore.saveFromResponse: Setting based on uriToStore: ${uriToStore}');
       List<Cookie> currentCookies = _allCookies?[uriToStore] ?? List.from([]);
       currentCookies = currentCookies
           // ignore: unnecessary_null_comparison
@@ -74,7 +79,8 @@ class SuperTokensCookieStore {
       _allCookies?[uriToStore] = currentCookies;
     });
 
-    logDebugMessage('SuperTokensCookieStore.saveFromResponse: Removing empty cookies');
+    logDebugMessage(
+        'SuperTokensCookieStore.saveFromResponse: Removing empty cookies');
     _allCookies?.removeWhere((key, value) => value.isEmpty);
 
     await _updatePersistentStorage();
@@ -83,17 +89,20 @@ class SuperTokensCookieStore {
 
   /// Returns a Uri to use when saving the cookie
   Future<Uri> _getCookieUri(Uri requestUri, Cookie cookie) async {
-    logDebugMessage('SuperTokensCookieStore._getCookieUri: Creating cookie uri from: ${requestUri}');
+    logDebugMessage(
+        'SuperTokensCookieStore._getCookieUri: Creating cookie uri from: ${requestUri}');
     Uri cookieUri = Uri.parse(
         // ignore: unnecessary_null_comparison
         "${requestUri.scheme == null ? "http" : requestUri.scheme}://${requestUri.host}${cookie.path == null ? "" : cookie.path}");
 
     if (cookie.domain != null) {
       String domain = cookie.domain ?? "";
-      logDebugMessage('SuperTokensCookiesStore._getCookieUri: got domain: ${domain}');
+      logDebugMessage(
+          'SuperTokensCookiesStore._getCookieUri: got domain: ${domain}');
       if (domain[0] == ".") {
         domain = domain.substring(1);
-        logDebugMessage('SuperTokensCookiesStore._getCookieUri: Using domain substring: ${domain}');
+        logDebugMessage(
+            'SuperTokensCookiesStore._getCookieUri: Using domain substring: ${domain}');
       }
 
       try {
@@ -116,19 +125,23 @@ class SuperTokensCookieStore {
   ///
   /// Strips expired cookies before storing in shared preferences
   Future<void> _updatePersistentStorage() async {
-    logDebugMessage('SuperTokensCookieStore._updatePersistentStorage: Updating persistent storage with cookies');
+    logDebugMessage(
+        'SuperTokensCookieStore._updatePersistentStorage: Updating persistent storage with cookies');
     Map<String, List<String>> mapToStore = {};
     _allCookies?.forEach((key, value) {
       String uriString = key.toString();
       List<String> cookieStrings =
           List.from(value.map((e) => e.toString()).toList());
-      logDebugMessage('SuperTokensCookieStore._updatePersistentStorage: Setting to ${uriString}');
-      logDebugMessage('SuperTokensCookieStore._updatePersistentStorage: Setting value ${cookieStrings}');
+      logDebugMessage(
+          'SuperTokensCookieStore._updatePersistentStorage: Setting to ${uriString}');
+      logDebugMessage(
+          'SuperTokensCookieStore._updatePersistentStorage: Setting value ${cookieStrings}');
       mapToStore[uriString] = cookieStrings;
     });
 
     String stringToStore = jsonEncode(mapToStore);
-    logDebugMessage('SuperTokensCookieStore._updatePersistentStorage: Storing preferences: ${stringToStore}');
+    logDebugMessage(
+        'SuperTokensCookieStore._updatePersistentStorage: Storing preferences: ${stringToStore}');
     await _sharedPreferences?.setString(_cookieSharedPrefsKey, stringToStore);
   }
 
@@ -138,7 +151,8 @@ class SuperTokensCookieStore {
   ///
   /// If you are trying to add cookies to a "cookie" header for a network call, consider using the [getCookieHeaderStringForRequest] which creates a semi-colon separated cookie string for a given Uri.
   Future<List<Cookie>> getForRequest(Uri uri) async {
-    logDebugMessage('SuperTokensCookieStore.getForRequest: Getting cookies for request from uri: ${uri}');
+    logDebugMessage(
+        'SuperTokensCookieStore.getForRequest: Getting cookies for request from uri: ${uri}');
     List<Cookie> cookiesToReturn = [];
     List<Cookie> allValidCookies = [];
 
@@ -154,7 +168,8 @@ class SuperTokensCookieStore {
         allValidCookies.addAll(storedCookies);
       }
     }
-    logDebugMessage('SuperTokensCookieStore.getForRequest: Valid cookies found: ${allValidCookies.length}');
+    logDebugMessage(
+        'SuperTokensCookieStore.getForRequest: Valid cookies found: ${allValidCookies.length}');
 
     if (allValidCookies.isNotEmpty) {
       List<Cookie> cookiesToRemoveFromStorage = [];
@@ -168,29 +183,37 @@ class SuperTokensCookieStore {
         }
       });
 
-      logDebugMessage('SuperTokensCookieStore.getForRequest: Total cookies to remove: ${cookiesToRemoveFromStorage.length}');
+      logDebugMessage(
+          'SuperTokensCookieStore.getForRequest: Total cookies to remove: ${cookiesToRemoveFromStorage.length}');
       if (cookiesToRemoveFromStorage.isNotEmpty) {
         await _removeFromPersistence(uri, cookiesToRemoveFromStorage);
       }
     }
 
-    logDebugMessage('SuperTokensCookieStore.getForRequest: Total cookies found ${cookiesToReturn.length}');
+    logDebugMessage(
+        'SuperTokensCookieStore.getForRequest: Total cookies found ${cookiesToReturn.length}');
     return cookiesToReturn;
   }
 
   /// Checks whether a network request's domain can be considered valid for a cookie to be sent
   bool _doesDomainMatch(String cookieHost, String requestHost) {
-    logDebugMessage('SuperTokensCookieStore._doesDomainMatch: Determining if domain matches');
-    logDebugMessage('SuperTokensCookieStore._doesDomainMatch: cookiesHost: ${cookieHost}');
-    logDebugMessage('SuperTokensCookieStore._doesDomainMatch: requestHost: ${requestHost}');
+    logDebugMessage(
+        'SuperTokensCookieStore._doesDomainMatch: Determining if domain matches');
+    logDebugMessage(
+        'SuperTokensCookieStore._doesDomainMatch: cookiesHost: ${cookieHost}');
+    logDebugMessage(
+        'SuperTokensCookieStore._doesDomainMatch: requestHost: ${requestHost}');
     return requestHost == cookieHost || requestHost.endsWith(".$cookieHost");
   }
 
   /// Checks whether a network request's path can be considered valid for a cookie to be sent
   bool _doesPathMatch(String cookiePath, String requestPath) {
-    logDebugMessage('SuperTokensCookieStore._doesPathMatch: Determining if path matches');
-    logDebugMessage('SuperTokensCookieStore._doesPathMatch: cookiePath: ${cookiePath}');
-    logDebugMessage('SuperTokensCookieStore._doesPathMatch: requestPath: ${requestPath}');
+    logDebugMessage(
+        'SuperTokensCookieStore._doesPathMatch: Determining if path matches');
+    logDebugMessage(
+        'SuperTokensCookieStore._doesPathMatch: cookiePath: ${cookiePath}');
+    logDebugMessage(
+        'SuperTokensCookieStore._doesPathMatch: requestPath: ${requestPath}');
     return (requestPath == cookiePath) ||
         (requestPath.startsWith(cookiePath) &&
             cookiePath[cookiePath.length - 1] == "/") ||
@@ -201,13 +224,17 @@ class SuperTokensCookieStore {
   /// Removes a list of cookies from persistent storage
   Future<void> _removeFromPersistence(
       Uri uri, List<Cookie> cookiesToRemove) async {
-    logDebugMessage('SuperTokensCookieStore._removeFromPersistence: Removing cookies from persistent storage');
-    logDebugMessage('SuperTokensCookieStore._removeFromPersistence: Total cookies to remove: ${cookiesToRemove.length}');
-    logDebugMessage('SuperTokensCookieStore._removeFromPersistence: uri: ${uri}');
+    logDebugMessage(
+        'SuperTokensCookieStore._removeFromPersistence: Removing cookies from persistent storage');
+    logDebugMessage(
+        'SuperTokensCookieStore._removeFromPersistence: Total cookies to remove: ${cookiesToRemove.length}');
+    logDebugMessage(
+        'SuperTokensCookieStore._removeFromPersistence: uri: ${uri}');
     List<Cookie> _cookiesToRemove = List.from(cookiesToRemove);
     List<Cookie> currentCookies = _allCookies?[uri] ?? List.from([]);
 
-    logDebugMessage('SuperTokensCookieStore._removeFromPersistence: Removing each cookie');
+    logDebugMessage(
+        'SuperTokensCookieStore._removeFromPersistence: Removing each cookie');
     _cookiesToRemove.forEach((element) {
       currentCookies.remove(element);
     });
@@ -222,9 +249,11 @@ class SuperTokensCookieStore {
   ///
   /// Does not return expired cookies and will remove them from persistent storage if any are found.
   Future<String> getCookieHeaderStringForRequest(Uri uri) async {
-    logDebugMessage('SuperTokensCookieStore.getCookieHeaderStringForRequest: Getting cookie header for request from uri: ${uri}');
+    logDebugMessage(
+        'SuperTokensCookieStore.getCookieHeaderStringForRequest: Getting cookie header for request from uri: ${uri}');
     List<Cookie> cookies = await getForRequest(uri);
-    logDebugMessage('SuperTokensCookieStore.getCookieHeaderStringForRequest: Total cookies found: ${cookies.length}');
+    logDebugMessage(
+        'SuperTokensCookieStore.getCookieHeaderStringForRequest: Total cookies found: ${cookies.length}');
     // ignore: unnecessary_null_comparison
     if (cookies != null && cookies.isNotEmpty) {
       List<String> cookiesStringList =
@@ -233,7 +262,8 @@ class SuperTokensCookieStore {
       return cookieHeaderString;
     }
 
-    logDebugMessage('SuperTokensCookieStore.getCookieHeaderStringForRequest: Returning empty value');
+    logDebugMessage(
+        'SuperTokensCookieStore.getCookieHeaderStringForRequest: Returning empty value');
     return "";
   }
 
@@ -247,19 +277,22 @@ class SuperTokensCookieStore {
   ///
   /// Expired cookies are not saved.
   Future<void> saveFromSetCookieHeader(Uri uri, String? setCookieHeader) async {
-    logDebugMessage('SuperTokensCookieStore.saveFromSetCookieHeader: Saving cookie from header against uri: ${uri}');
+    logDebugMessage(
+        'SuperTokensCookieStore.saveFromSetCookieHeader: Saving cookie from header against uri: ${uri}');
     if (setCookieHeader != null) {
       await saveFromResponse(uri, getCookieListFromHeader(setCookieHeader));
     }
   }
 
   static List<Cookie> getCookieListFromHeader(String setCookieHeader) {
-    logDebugMessage('SuperTokensCookieStore.getCookieListFromHeader: Getting cookie list from header: ${setCookieHeader}');
+    logDebugMessage(
+        'SuperTokensCookieStore.getCookieListFromHeader: Getting cookie list from header: ${setCookieHeader}');
     List<String> setCookiesStringList =
         setCookieHeader.split(RegExp(r',(?=[^ ])'));
     List<Cookie> setCookiesList =
         setCookiesStringList.map((e) => Cookie.fromSetCookieValue(e)).toList();
-    logDebugMessage('SuperTokensCookieStore.getCookieListFromHeader: Total cookies found in header: ${setCookiesList.length}');
+    logDebugMessage(
+        'SuperTokensCookieStore.getCookieListFromHeader: Total cookies found in header: ${setCookiesList.length}');
     return setCookiesList;
   }
 }

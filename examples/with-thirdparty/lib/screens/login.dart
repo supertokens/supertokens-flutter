@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart'
@@ -18,39 +17,30 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   Future<void> loginWithGoogle() async {
-    GoogleSignIn googleSignIn;
+    GoogleSignIn googleSignIn = GoogleSignIn.instance;
 
     if (Platform.isAndroid) {
-      googleSignIn = GoogleSignIn(
-        serverClientId: "GOOGLE_WEB_CLIENT_ID",
-        scopes: [
-          'email',
-        ],
-      );
+      await googleSignIn.initialize(serverClientId: "GOOGLE_WEB_CLIENT_ID");
     } else {
-      googleSignIn = GoogleSignIn(
+      await googleSignIn.initialize(
         clientId: "GOOGLE_IOS_CLIENT_ID",
         serverClientId: "GOOGLE_WEB_CLIENT_ID",
-        scopes: [
-          'email',
-        ],
       );
     }
 
-    if (googleSignIn.currentUser != null) {
-      // This cleans up the current user from the google sign in package if there is any active user
-      await googleSignIn.signOut();
-    }
+    // We sign out the user to force a fresh login
+    await googleSignIn.signOut();
 
     try {
-      GoogleSignInAccount? account = await googleSignIn.signIn();
+      GoogleSignInAccount account = await googleSignIn.authenticate(
+        scopeHint: ['email'],
+      );
 
-      if (account == null) {
-        print("Google sign in was aborted");
-        return;
-      }
-
-      String? authCode = account.serverAuthCode;
+      // Get server auth code using authorizeServer
+      final authResult = await account.authorizationClient.authorizeServer([
+        'email',
+      ]);
+      String? authCode = authResult?.serverAuthCode;
 
       if (authCode == null) {
         print("Google sign in did not return a server auth code");
@@ -63,9 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
           "thirdPartyId": "google",
           "redirectURIInfo": {
             "redirectURIOnProviderDashboard": "",
-            "redirectURIQueryParams": {
-              "code": authCode,
-            },
+            "redirectURIQueryParams": {"code": authCode},
           },
         },
       );
@@ -83,19 +71,16 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> loginWithGithub() async {
     FlutterAppAuth appAuth = FlutterAppAuth();
 
-    var authResult = await appAuth.authorize(AuthorizationRequest(
-      "GITHUB_CLIENT_ID",
-      "com.supertokens.supertokensexample://oauthredirect",
-      serviceConfiguration: const AuthorizationServiceConfiguration(
-        authorizationEndpoint: "https://github.com/login/oauth/authorize",
-        tokenEndpoint: "https://github.com/login/oauth/access_token",
+    var authResult = await appAuth.authorize(
+      AuthorizationRequest(
+        "GITHUB_CLIENT_ID",
+        "com.supertokens.supertokensexample://oauthredirect",
+        serviceConfiguration: const AuthorizationServiceConfiguration(
+          authorizationEndpoint: "https://github.com/login/oauth/authorize",
+          tokenEndpoint: "https://github.com/login/oauth/access_token",
+        ),
       ),
-    ));
-
-    if (authResult == null) {
-      print("Github login failed");
-      return;
-    }
+    );
 
     if (authResult.authorizationCode == null) {
       print("Github did not return an authorization code");
@@ -110,9 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
           "redirectURIInfo": {
             "redirectURIOnProviderDashboard":
                 "com.supertokens.supertokensexample://oauthredirect",
-            "redirectURIQueryParams": {
-              "code": authResult.authorizationCode,
-            },
+            "redirectURIQueryParams": {"code": authResult.authorizationCode},
           },
         },
       );
@@ -129,7 +112,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> loginWithApple() async {
     var credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [AppleIDAuthorizationScopes.email]);
+      scopes: [AppleIDAuthorizationScopes.email],
+    );
 
     try {
       var result = await NetworkManager.instance.client.post(
@@ -138,9 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
           "thirdPartyId": "apple",
           "redirectURIInfo": {
             "redirectURIOnProviderDashboard": "",
-            "redirectURIQueryParams": {
-              "code": credential.authorizationCode,
-            },
+            "redirectURIQueryParams": {"code": credential.authorizationCode},
           },
         },
       );
@@ -183,10 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     child: const Text("Continue with Apple"),
                   )
-                : const SizedBox(
-                    height: 0,
-                    width: 0,
-                  ),
+                : const SizedBox(height: 0, width: 0),
           ],
         ),
       ),

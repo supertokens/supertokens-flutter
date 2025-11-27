@@ -10,7 +10,7 @@ platforms:
   ios:
 
 environment:
-  sdk: ">=2.12.0 <3.9.0"
+  sdk: ">=2.12.0 <3.10.2"
   flutter: ">=1.17.0"
 
 dependencies:
@@ -19,13 +19,13 @@ dependencies:
   http: "<2.0.0"
   shared_preferences: ">=2.0.0 <3.0.0"
   mutex: ^3.1.0
-  dio: ^5.0.0
+  dio: ^5.9.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  test: ^1.21.4
-  dio_http_formatter: ^3.2.1
+  test: ^1.26.3
+  dio_http_formatter: ^3.3.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
