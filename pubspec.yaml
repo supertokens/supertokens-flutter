@@ -10,7 +10,7 @@ platforms:
   ios:
 
 environment:
-  sdk: ">=2.12.0 <3.10.2"
+  sdk: ">=2.12.0 <3.10.5"
   flutter: ">=1.17.0"
 
 dependencies:
@@ -31,4 +31,3 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter.
-flutter:
