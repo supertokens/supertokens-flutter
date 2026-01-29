@@ -10,7 +10,7 @@ platforms:
   ios:
 
 environment:
-  sdk: ">=2.12.0 <3.10.5"
+  sdk: ">=2.12.0 <3.10.10"
   flutter: ">=2.0.0"
 
 dependencies:
@@ -19,7 +19,7 @@ dependencies:
   http: "<2.0.0"
   shared_preferences: ">=2.0.0 <3.0.0"
   mutex: ^3.1.0
-  dio: ^5.9.0
+  dio: ^5.9.1
 
 dev_dependencies:
   flutter_test:
