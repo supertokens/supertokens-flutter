@@ -14,15 +14,19 @@ class FrontToken {
   static Mutex _frontTokenMutex = Mutex();
 
   static Future<String?> _getFronTokenFromStorage() async {
-    logDebugMessage('FrontToken._getFronTokenFromStorage: Getting front token from storage');
+    logDebugMessage(
+        'FrontToken._getFronTokenFromStorage: Getting front token from storage');
     if (tokenInMemory == null) {
-      logDebugMessage('FrontToken._getFronTokenFromStorage: Fetching token from shared preferences');
+      logDebugMessage(
+          'FrontToken._getFronTokenFromStorage: Fetching token from shared preferences');
       String? token = (await SharedPreferences.getInstance())
           .getString(FrontToken._sharedPreferencesKey);
-      logDebugMessage('FrontToken._getFronTokenFromStorage: Setting in memory: ${token}');
+      logDebugMessage(
+          'FrontToken._getFronTokenFromStorage: Setting in memory: ${token}');
       FrontToken.tokenInMemory = token;
     }
-    logDebugMessage('FrontToken._getFronTokenFromStorage: token from memory: ${FrontToken.tokenInMemory}');
+    logDebugMessage(
+        'FrontToken._getFronTokenFromStorage: token from memory: ${FrontToken.tokenInMemory}');
     return FrontToken.tokenInMemory;
   }
 
@@ -39,7 +43,8 @@ class FrontToken {
   }
 
   static Map<String, dynamic> _parseFrontToken(fronTokenDecoded) {
-    logDebugMessage('FrontToken._parseFrontToken: parsing front token: ${fronTokenDecoded}');
+    logDebugMessage(
+        'FrontToken._parseFrontToken: parsing front token: ${fronTokenDecoded}');
     var base64Decoded = base64Decode(fronTokenDecoded);
     String decodedString = utf8.decode(base64Decoded);
     var result = jsonDecode(decodedString);
@@ -53,17 +58,21 @@ class FrontToken {
 
     while (true) {
       String? frontToken = await _getFrontToken();
-      logDebugMessage('FrontToken._getTokenInfo: got frontToken: ${frontToken}');
+      logDebugMessage(
+          'FrontToken._getTokenInfo: got frontToken: ${frontToken}');
 
       if (frontToken == null) {
-        logDebugMessage('FrontToken._getTokenInfo: Fetching local session state since token is null');
+        logDebugMessage(
+            'FrontToken._getTokenInfo: Fetching local session state since token is null');
         LocalSessionState localSessionState =
             await SuperTokensUtils.getLocalSessionState();
         if (localSessionState.status == LocalSessionStateStatus.EXISTS) {
-          logDebugMessage('FrontToken._getTokenInfo: local session state status is exists');
+          logDebugMessage(
+              'FrontToken._getTokenInfo: local session state status is exists');
           await _frontTokenMutex.acquire();
         } else {
-          logDebugMessage('FrontToken._getTokenInfo: local session state status is not exists');
+          logDebugMessage(
+              'FrontToken._getTokenInfo: local session state status is not exists');
           finalReturnValue = null;
           if (_frontTokenMutex.isLocked) {
             _frontTokenMutex.release();
@@ -72,7 +81,8 @@ class FrontToken {
           break;
         }
       } else {
-        logDebugMessage('FrontToken._getTokenInfo: Parsing and returning token');
+        logDebugMessage(
+            'FrontToken._getTokenInfo: Parsing and returning token');
         finalReturnValue = _parseFrontToken(frontToken);
         if (_frontTokenMutex.isLocked) {
           _frontTokenMutex.release();
@@ -88,27 +98,33 @@ class FrontToken {
   }
 
   static Future _setFrontTokenToStorage(String? frontToken) async {
-    logDebugMessage('FrontToken._setFrontTokenToStorage: Setting front token in storage');
-    logDebugMessage('FrontToken._setFrontTokenToStorage: frontToken: ${frontToken}');
+    logDebugMessage(
+        'FrontToken._setFrontTokenToStorage: Setting front token in storage');
+    logDebugMessage(
+        'FrontToken._setFrontTokenToStorage: frontToken: ${frontToken}');
     var instance = await SharedPreferences.getInstance();
     if (frontToken == null) {
-      logDebugMessage('FrontToken._setFrontTokenToStorage: token is null, removing from preferences and memory');
+      logDebugMessage(
+          'FrontToken._setFrontTokenToStorage: token is null, removing from preferences and memory');
       instance.remove(FrontToken._sharedPreferencesKey);
       FrontToken.tokenInMemory = null;
     } else {
-      logDebugMessage('FrontToken._setFrontTokenToStorage: Setting updated token in preferences and memory');
+      logDebugMessage(
+          'FrontToken._setFrontTokenToStorage: Setting updated token in preferences and memory');
       instance.setString(FrontToken._sharedPreferencesKey, frontToken);
       FrontToken.tokenInMemory = frontToken;
     }
   }
 
   static Future _setFronToken(String? frontToken) async {
-    logDebugMessage('FrontToken._setFronToken: Setting front token: ${frontToken}');
+    logDebugMessage(
+        'FrontToken._setFronToken: Setting front token: ${frontToken}');
     String? oldToken = await _getFronTokenFromStorage();
     logDebugMessage('FrontToken._setFronToken: oldToken: ${oldToken}');
 
     if (oldToken != null && frontToken != null) {
-      logDebugMessage('FrontToken._setFronToken: Both oldToken and frontToken are non null');
+      logDebugMessage(
+          'FrontToken._setFronToken: Both oldToken and frontToken are non null');
       Map<String, dynamic> oldTokenPayload =
           _parseFrontToken(oldToken)['up'] as Map<String, dynamic>;
       Map<String, dynamic> newTokenPayload =
@@ -118,7 +134,8 @@ class FrontToken {
       String newPayloadString = newTokenPayload.toString();
 
       if (oldPayloadString != newPayloadString) {
-        logDebugMessage('FrontToken._setFronToken: payloads do not match, sending event: ACCESS_TOKEN_PAYLOAD_UPDATED');
+        logDebugMessage(
+            'FrontToken._setFronToken: payloads do not match, sending event: ACCESS_TOKEN_PAYLOAD_UPDATED');
         SuperTokens.config.eventHandler(Eventype.ACCESS_TOKEN_PAYLOAD_UPDATED);
       }
     }
@@ -168,7 +185,8 @@ class FrontToken {
   }
 
   static Future _removeTokenFromStorage() async {
-    logDebugMessage('FrontToken._removeTokenFromStorage: Removing token from preferences and memory');
+    logDebugMessage(
+        'FrontToken._removeTokenFromStorage: Removing token from preferences and memory');
     (await SharedPreferences.getInstance())
         .remove(FrontToken._sharedPreferencesKey);
     FrontToken.tokenInMemory = null;
@@ -178,7 +196,8 @@ class FrontToken {
     logDebugMessage('FrontToken.removeToken: Removing token');
     await _tokenInfoMutex.acquireWrite();
     await _removeTokenFromStorage();
-    logDebugMessage('FrontToken.removeToken: Setting access and refresh token to empty value');
+    logDebugMessage(
+        'FrontToken.removeToken: Setting access and refresh token to empty value');
     await Utils.setToken(TokenType.ACCESS, "");
     await Utils.setToken(TokenType.REFRESH, "");
     logDebugMessage('FrontToken.removeToken: Removing token from AntiCSRF');

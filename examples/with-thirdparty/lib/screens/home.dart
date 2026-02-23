@@ -32,9 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> callAPI() async {
     try {
-      var response = await NetworkManager.instance.client.get(
-        "/sessioninfo",
-      );
+      var response = await NetworkManager.instance.client.get("/sessioninfo");
       setState(() {
         data = response.data.toString();
       });
@@ -45,13 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget renderContent() {
     return Padding(
-      padding: const EdgeInsets.only(
-        top: 16.0,
-      ),
+      padding: const EdgeInsets.only(top: 16.0),
       child: Container(
-        padding: const EdgeInsets.only(
-          bottom: 16,
-        ),
+        padding: const EdgeInsets.only(bottom: 16),
         width: double.infinity,
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
@@ -64,9 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFe7ffed),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFFe7ffed)),
               child: const Center(
                 child: Text(
                   "Login successful",
@@ -78,36 +70,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(
-                top: 24.0,
-              ),
-              child: Center(
-                child: Text("Your userID is:"),
-              ),
+              padding: EdgeInsets.only(top: 24.0),
+              child: Center(child: Text("Your userID is:")),
             ),
             Padding(
-              padding: const EdgeInsets.only(
-                top: 6.0,
-              ),
+              padding: const EdgeInsets.only(top: 6.0),
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    width: 1,
-                    color: Color(0xFFff3f33),
-                  ),
+                  border: Border.all(width: 1, color: Color(0xFFff3f33)),
                 ),
                 child: Text(userId),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(
-                top: 16,
-              ),
+              padding: const EdgeInsets.only(top: 16),
               child: FilledButton(
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Color(0xFFff9933)),
+                  backgroundColor: WidgetStateProperty.all(Color(0xFFff9933)),
                 ),
                 onPressed: () {
                   callAPI();
@@ -123,10 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget renderData() {
     if (data.isEmpty) {
-      return const SizedBox(
-        width: 0,
-        height: 0,
-      );
+      return const SizedBox(width: 0, height: 0);
     }
 
     return Expanded(
@@ -156,8 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 alignment: Alignment.topRight,
                 child: FilledButton(
                   style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all(Color(0xFFff9933)),
+                    backgroundColor: WidgetStateProperty.all(Color(0xFFff9933)),
                   ),
                   onPressed: () {
                     signOut();

@@ -17,7 +17,8 @@ class AntiCSRF {
 
   static Future<String?> getToken(String? associatedAccessTokenUpdate) async {
     logDebugMessage('AntiCSRF.getToken: Getting token');
-    logDebugMessage('AntiCSRF.getToken: associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}');
+    logDebugMessage(
+        'AntiCSRF.getToken: associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}');
     if (associatedAccessTokenUpdate == null) {
       logDebugMessage('AntiCSRF.getToken: associated token is null');
       AntiCSRF._antiCSRFInfo = null;
@@ -39,7 +40,8 @@ class AntiCSRF {
     } else if (AntiCSRF._antiCSRFInfo?.associatedAccessTokenUpdate != null &&
         AntiCSRF._antiCSRFInfo?.associatedAccessTokenUpdate !=
             associatedAccessTokenUpdate) {
-      logDebugMessage('AntiCSRF.getToken: associatedAccessTokenUpdate did not match');
+      logDebugMessage(
+          'AntiCSRF.getToken: associatedAccessTokenUpdate did not match');
       AntiCSRF._antiCSRFInfo = null;
       return await AntiCSRF.getToken(associatedAccessTokenUpdate);
     }
@@ -50,7 +52,8 @@ class AntiCSRF {
   static Future<void> setToken(
       String antiCSRFToken, String? associatedAccessTokenUpdate) async {
     logDebugMessage('AntiCSRF.setToken: Setting token');
-    logDebugMessage('AntiCSRF.setToken: associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}');
+    logDebugMessage(
+        'AntiCSRF.setToken: associatedAccessTokenUpdate: ${associatedAccessTokenUpdate}');
     if (associatedAccessTokenUpdate == null) {
       logDebugMessage('AntiCSRF.setToken: associated token is null');
       AntiCSRF._antiCSRFInfo = null;
@@ -58,7 +61,8 @@ class AntiCSRF {
     }
 
     SharedPreferences preferences = await SharedPreferences.getInstance();
-    logDebugMessage('AntiCSRF.setToken: setting preferences for: ${AntiCSRF._sharedPreferencesKey}');
+    logDebugMessage(
+        'AntiCSRF.setToken: setting preferences for: ${AntiCSRF._sharedPreferencesKey}');
     await preferences.setString(AntiCSRF._sharedPreferencesKey, antiCSRFToken);
     await preferences.reload();
 

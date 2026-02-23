@@ -16,7 +16,8 @@ import 'package:supertokens_flutter/src/logger.dart';
 extension SuperTokensDioExtension on Dio {
   /// Adds the SuperTokens interceptor to the Dio instance.
   void addSupertokensInterceptor() {
-    logDebugMessage('SuperTokensDioExtension.addSupertokensInterceptor: Adding supertokens interceptor');
+    logDebugMessage(
+        'SuperTokensDioExtension.addSupertokensInterceptor: Adding supertokens interceptor');
     interceptors.add(SuperTokensInterceptorWrapper(client: this));
   }
 }
