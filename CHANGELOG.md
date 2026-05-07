@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-05-07
+
+### Fixes
+
+- Widened the allowed Dart SDK upper bound from `<3.9.0` to `<4.0.0` so the package installs on Dart 3.9+ toolchains.
+
 ## [0.6.4] - 2025-03-26
 
 ### Changes
